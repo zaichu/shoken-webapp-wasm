@@ -1,13 +1,13 @@
-.PHONY: all build copy clean
+.PHONY: all build run clean
 
-all: build copy
+all: clean build run
 
 build:
 	trunk build --release
 
-copy:
-	mkdir -p docs
-	cp -r dist/* docs/
+run:
+	trunk serve --release
 
 clean:
-	rm -rf dist docs
+	rm -rf dist
+	cargo clean
