@@ -1,18 +1,25 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shoken WebApp</title>
-</head>
+    <meta charset="utf-8" />
+    <title>Shoken Webapp WASM</title>
+
+<link rel="modulepreload" href="/shoken-webapp-wasm-719d2a3c009be60e.js" crossorigin=anonymous integrity="sha384-y1CiJwl2cXpkTkw2KVCOnZuNUdTyqwmQVQUFd503W8MmH+l1DOQRa+0k4P/f3Mss">
+<link rel="preload" href="/shoken-webapp-wasm-719d2a3c009be60e_bg.wasm" crossorigin=anonymous integrity="sha384-WmVFO/H1q5YaDp7RQP5MxzQdf3HAvFNbys485bplC0+YFT/jACI5sfH0y4nKmfJU" as="fetch" type="application/wasm"></head>
 
 <body>
-    <div id="app"></div>
-    <script type="module">
-        import init from './shoken_webapp_wasm.js';
-        init();
-    </script>
-</body>
+
+<script type="module" nonce="Z5Be1rPSWuHkOQbK/3t8Kw==">
+import init, * as bindings from '/shoken-webapp-wasm-719d2a3c009be60e.js';
+const wasm = await init('/shoken-webapp-wasm-719d2a3c009be60e_bg.wasm');
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
 
 </html>
