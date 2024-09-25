@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Shoken Webapp Wasm</title>
+
+<link rel="modulepreload" href="/shoken-webapp-wasm/shoken-webapp-wasm-c846451de4cf9cc3.js" crossorigin=anonymous integrity="sha384-cbLPFBI4h8a51tJHZsmDg2QIOg1q3TKvE4nfjdEZKLABmkDwFdUNroVQXbcH/brq">
+<link rel="preload" href="/shoken-webapp-wasm/shoken-webapp-wasm-c846451de4cf9cc3_bg.wasm" crossorigin=anonymous integrity="sha384-9ohq0TCxDfhoy43v1kNFXDMudOa4ak1drpXDyIkz8vAAvD3g5rBYoGfFAKryzEpN" as="fetch" type="application/wasm"></head>
+
+<body>
+<script type="module" nonce="aP0r5H+oNX1qUHppPZ+FMQ==">
+import init, * as bindings from '/shoken-webapp-wasm/shoken-webapp-wasm-c846451de4cf9cc3.js';
+const wasm = await init('/shoken-webapp-wasm/shoken-webapp-wasm-c846451de4cf9cc3_bg.wasm');
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
+
+</html>
