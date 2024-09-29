@@ -1,4 +1,3 @@
-use html::ChildrenProps;
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 use yew_router::prelude::*;
@@ -12,7 +11,7 @@ enum Route {
     #[at("/shoken-webapp-wasm/search")]
     Search,
     #[not_found]
-    #[at("/404")]
+    #[at("/shoken-webapp-wasm/404")]
     NotFound,
 }
 
@@ -56,15 +55,21 @@ fn receipts() -> Html {
 }
 
 #[function_component(Layout)]
-fn layout(props: &ChildrenProps) -> Html {
+fn layout(props: &yew::html::ChildrenProps) -> Html {
     html! {
-        <div class="app-container">
-            <header>
-                <h1><Link<Route> to={Route::Home} classes="logo">{ "証券Web" }</Link<Route>></h1>
-                <nav>
-                    <Link<Route> to={Route::Search} classes="nav-link">{ "銘柄検索" }</Link<Route>>
-                    <Link<Route> to={Route::Receipts} classes="nav-link">{ "受取金" }</Link<Route>>
-                </nav>
+        <>
+            <header class="header">
+                <div class="header-content">
+                    <div class="logo">
+                        <Link<Route> to={Route::Home}>{ "証券Web" }</Link<Route>>
+                    </div>
+                    <nav>
+                        <ul>
+                            <li><Link<Route> to={Route::Search}>{ "銘柄検索" }</Link<Route>></li>
+                            <li><Link<Route> to={Route::Receipts}>{ "受取金" }</Link<Route>></li>
+                        </ul>
+                    </nav>
+                </div>
             </header>
             <main>
                 { for props.children.iter() }
@@ -75,7 +80,7 @@ fn layout(props: &ChildrenProps) -> Html {
             <style>
                 { get_styles() }
             </style>
-        </div>
+        </>
     }
 }
 
@@ -96,62 +101,62 @@ pub fn main() {
 fn get_styles() -> String {
     String::from(
         r#"
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
         }
-        .app-container {
+        .header {
+            background-color: #fff;
+            box-shadow: 1px 1px 4px 0 rgba(0,0,0,.1);
+            position: fixed;
+            width: 100%;
+            z-index: 3;
+        }
+        .header-content {
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 1rem;
-        }
-        header {
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            padding: 1rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 1rem;
         }
-        .logo {
-            color: #ecf0f1;
+        .logo a {
+            color: #000;
             text-decoration: none;
             font-size: 1.5rem;
             font-weight: bold;
         }
-        nav {
-            display: flex;
-            gap: 1rem;
+        .header ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            overflow: hidden;
+            background-color: #fff;
         }
-        .nav-link {
-            color: #ecf0f1;
+        .header li {
+            display: inline-block;
+            margin-left: 1rem;
+        }
+        .header li a {
+            display: block;
+            padding: 10px;
             text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            transition: background-color 0.3s;
+            color: #000;
         }
-        .nav-link:hover {
-            background-color: #34495e;
+        .header li a:hover,
+        .header .menu-btn:hover {
+            background-color: #f4f4f4;
         }
         main {
-            background-color: #fff;
-            padding: 2rem;
-            margin-top: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
-            color: #2c3e50;
-        }
-        footer {
-            text-align: center;
-            margin-top: 2rem;
-            padding: 1rem;
-            background-color: #2c3e50;
-            color: #ecf0f1;
+            padding: 5rem 2rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         "#,
     )
