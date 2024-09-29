@@ -5,11 +5,11 @@ use yew_router::prelude::*;
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
-    #[at("/")]
+    #[at("/shoken-webapp-wasm/")]
     Home,
-    #[at("/receipts")]
+    #[at("/shoken-webapp-wasm/receipts")]
     Receipts,
-    #[at("/search")]
+    #[at("/shoken-webapp-wasm/search")]
     Search,
     #[not_found]
     #[at("/404")]
@@ -105,7 +105,6 @@ fn get_styles() -> String {
             background-color: #f4f4f4;
         }
         .app-container {
-            max-width: 1200px;
             margin: 0 auto;
             padding: 1rem;
         }
