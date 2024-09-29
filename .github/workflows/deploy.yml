@@ -20,7 +20,7 @@ jobs:
       - name: Install Trunk
         uses: jetli/trunk-action@v0.1.0
       - name: Build
-        run: trunk build --release --public-url /shoken-webapp-wasm/
+        run: trunk build --release
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
