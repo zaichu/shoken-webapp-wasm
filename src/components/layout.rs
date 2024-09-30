@@ -28,8 +28,8 @@ pub fn layout(props: &yew::html::ChildrenProps) -> Html {
                 { for props.children.iter() }
             </main>
             <footer class="bg-light text-center text-lg-start mt-4">
-                <div class="container p-4">
-                    <p class="text-center">{ "© 2024 証券Web" }</p>
+                <div class="container p-1">
+                    <p class="text-center mt-3">{ "© 2024 証券Web" }</p>
                 </div>
             </footer>
         </>
