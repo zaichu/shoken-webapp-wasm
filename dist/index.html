@@ -2,17 +2,21 @@
 <html lang="ja">
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>証券Web</title>
-    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<link rel="modulepreload" href="/shoken-webapp-wasm/shoken-webapp-wasm-f76326f6b87cd418.js" crossorigin=anonymous integrity="sha384-OToiHGZ8fEm8FFG2kTAAXhIgeikX/W/C4e2PCK5a4pL7u40Mdq956cYgANNLJywL">
-<link rel="preload" href="/shoken-webapp-wasm/shoken-webapp-wasm-f76326f6b87cd418_bg.wasm" crossorigin=anonymous integrity="sha384-7xym+QWbXZrqH72SfE0aemjwjowpbU6F1dBYYCc1KUP9KSwKOT7ag3be52I8NFOe" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/shoken-webapp-wasm/shoken-webapp-wasm-ff3531d3da35ef3e.js" crossorigin=anonymous integrity="sha384-zi1rKnuIwqz9IZ+0cevSGexwq2VfhLGuSbEuehWF8mYOBcBMqKRv/yBOqsWgu64Z">
+<link rel="preload" href="/shoken-webapp-wasm/shoken-webapp-wasm-ff3531d3da35ef3e_bg.wasm" crossorigin=anonymous integrity="sha384-emMpj6Z9euBvsD+JEHhI2K6F3NEjX5ZkppzlU99mMTYHc3Hn3GivQMdgX2hKPuXu" as="fetch" type="application/wasm"></head>
 
 <body>
-<script type="module" nonce="6/rjNnr0rvrGdy0BRHSsqg==">
-import init, * as bindings from '/shoken-webapp-wasm/shoken-webapp-wasm-f76326f6b87cd418.js';
-const wasm = await init('/shoken-webapp-wasm/shoken-webapp-wasm-f76326f6b87cd418_bg.wasm');
+    <div id="app"></div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module" nonce="7nkcgX7UxbPuAyWZ1bXNrg==">
+import init, * as bindings from '/shoken-webapp-wasm/shoken-webapp-wasm-ff3531d3da35ef3e.js';
+const wasm = await init('/shoken-webapp-wasm/shoken-webapp-wasm-ff3531d3da35ef3e_bg.wasm');
 
 
 window.wasmBindings = bindings;
