@@ -1,68 +1,113 @@
-use crate::components::Layout;
-use web_sys::InputEvent;
+use reqwest;
+use select::document::Document;
+use select::predicate::Name;
+use wasm_bindgen::JsValue;
+use wasm_bindgen_futures::spawn_local;
+use web_sys::{console, window, HtmlInputElement};
 use yew::prelude::*;
 
-pub struct Search {
-    stock: String,
+use crate::components::Layout;
+
+#[function_component(Search)]
+pub fn search() -> Html {
+    let stock = use_state(String::new);
+
+    let oninput = {
+        let stock = stock.clone();
+
+        Callback::from(move |e: InputEvent| {
+            let input: HtmlInputElement = e.target_unchecked_into();
+            let value = input.value();
+            stock.set(value.clone());
+
+            console::log_1(&JsValue::from_str(&format!("Input value: {}", value)));
+        })
+    };
+
+    html! {
+        <Layout>
+            <h2 class="mb-4">{ "銘柄検索" }</h2>
+            <div class="mb-3">
+                <input type="text" class="form-control" id="stockCode" placeholder="銘柄名・銘柄コードを入力" value={(*stock).clone()} oninput={oninput} />
+            </div>
+            { render_link(&stock) }
+        </Layout>
+    }
 }
 
-pub enum Msg {
-    UpdateStock(String),
-}
+fn render_link(stock_code: &UseStateHandle<String>) -> Html {
+    let links = vec![
+        (
+            "かぶたん",
+            "https://kabutan.jp/stock/?code={}",
+            "btn-primary",
+        ),
+        (
+            "Yahoo! Finance",
+            "https://finance.yahoo.co.jp/quote/{}",
+            "btn-secondary",
+        ),
+        (
+            "日経",
+            "https://www.nikkei.com/nkd/company/?scode={}",
+            "btn-success",
+        ),
+        (
+            "バフェットコード",
+            "https://www.buffett-code.com/company/{}",
+            "btn-warning",
+        ),
+        ("みんかぶ", "https://minkabu.jp/stock/{}/", "btn-info"),
+    ];
 
-impl Component for Search {
-    type Message = Msg;
-    type Properties = ();
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self {
-            stock: "".to_string(),
-        }
-    }
-
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Msg::UpdateStock(code) => {
-                self.stock = code;
-                true
-            }
-        }
-    }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        let oninput = ctx.link().callback(|e: InputEvent| {
-            let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-            Msg::UpdateStock(input.value())
-        });
-
-        // 各ウェブサイトへのリンクを作成
-        let kabutan_link = format!("https://kabutan.jp/stock/?code={}", self.stock);
-        let yahoo_finance_link = format!("https://finance.yahoo.co.jp/quote/{}", self.stock);
-        let nikkei_link = format!("https://www.nikkei.com/nkd/company/?scode={}", self.stock);
-        let buffett_code_link = format!("https://www.buffett-code.com/company/{}", self.stock);
-        let minkabu_link = format!("https://minkabu.jp/stock/{}/", self.stock);
-
-        html! {
-            <Layout>
-                <h2 class="mb-4">{ "銘柄検索" }</h2>
-                <div class="mb-3">
-                    <input
-                        type="text"
-                        class="form-control"
-                        id="stockCode"
-                        placeholder="銘柄名・銘柄コードを入力"
-                        value={self.stock.clone()}
-                        oninput={oninput}
-                    />
-                </div>
-                <div class="mt-3">
-                    <a href={kabutan_link} target="_blank" class="btn btn-primary me-2">{ "かぶたんで確認する" }</a>
-                    <a href={yahoo_finance_link} target="_blank" class="btn btn-secondary me-2">{ "Yahoo! Financeで確認する" }</a>
-                    <a href={nikkei_link} target="_blank" class="btn btn-success me-2">{ "日経で確認する" }</a>
-                    <a href={buffett_code_link} target="_blank" class="btn btn-warning me-2">{ "バフェットコードで確認する" }</a>
-                    <a href={minkabu_link} target="_blank" class="btn btn-info">{ "みんかぶで確認する" }</a>
-                </div>
-            </Layout>
-        }
+    html! {
+        <div class="mt-3">
+            { for links.into_iter().map(|(text, href, class)| {
+                let stock = stock_code.clone();
+                html! {
+                    <button onclick={Callback::from(move |_| {
+                        let stock = stock.clone();
+                        spawn_local(async move {
+                            if let Some(window) = window() {
+                                let url = format!("https://www.buffett-code.com/company/search?keyword={}", urlencoding::encode(&stock));
+                                let client = reqwest::Client::new();
+                                let stock_code = match client.get(&url)
+                                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                                    .send()
+                                    .await {
+                                    Ok(res) => {
+                                        if let Ok(body) = res.text().await {
+                                            let document = Document::from(body.as_str());
+                                            document.find(Name("body"))
+                                                .next()
+                                                .and_then(|body| body.find(Name("div")).nth(0))
+                                                .and_then(|div| div.find(Name("div")).nth(0))
+                                                .and_then(|div| div.find(Name("main")).next())
+                                                .and_then(|main| main.find(Name("div")).nth(2))
+                                                .and_then(|div| div.find(Name("div")).next())
+                                                .and_then(|div| div.find(Name("div")).nth(1))
+                                                .and_then(|div| div.find(Name("div")).nth(1))
+                                                .and_then(|div| div.find(Name("div")).next())
+                                                .and_then(|div| div.find(Name("div")).next())
+                                                .and_then(|div| div.find(Name("p")).next())
+                                                .and_then(|p| p.find(Name("span")).next())
+                                                .map(|span| span.text())
+                                                .unwrap_or_else(|| stock.to_string())
+                                        } else {
+                                            stock.to_string()
+                                        }
+                                    },
+                                    Err(_) => stock.to_string(),
+                                };
+                                let url = href.replace("{}", &stock_code);
+                                let _ = window.open_with_url_and_target(&url, "_blank");
+                            }
+                        });
+                    })} class={format!("btn {class} me-2")}>
+                        { text }
+                    </button>
+                }
+            })}
+        </div>
     }
 }

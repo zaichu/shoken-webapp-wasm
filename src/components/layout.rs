@@ -1,6 +1,7 @@
-use crate::routes::Route;
 use yew::prelude::*;
 use yew_router::prelude::*;
+
+use crate::app::Route;
 
 #[function_component(Layout)]
 pub fn layout(props: &yew::html::ChildrenProps) -> Html {

@@ -7,7 +7,21 @@ pub fn receipts() -> Html {
         <Layout>
             <h2 class="mb-4">{ "受取金" }</h2>
             <p class="lead">{ "ここで受取金を管理できます。" }</p>
-            // 受取金の管理機能をここに追加
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
         </Layout>
     }
 }
