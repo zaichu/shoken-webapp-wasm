@@ -1,6 +1,5 @@
-use reqwest;
-use select::document::Document;
-use select::predicate::Name;
+use gloo_net::http::Request;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{console, window, HtmlInputElement};
@@ -8,17 +7,31 @@ use yew::prelude::*;
 
 use crate::components::Layout;
 
+#[derive(Clone, PartialEq, Deserialize, Serialize)]
+struct Stock {
+    pub date: String,
+    pub code: String,
+    pub name: String,
+    pub market_category: String,
+    pub industry_code_33: Option<String>,
+    pub industry_category_33: Option<String>,
+    pub industry_code_17: Option<String>,
+    pub industry_category_17: Option<String>,
+    pub size_code: Option<String>,
+    pub size_category: Option<String>,
+}
+
 #[function_component(Search)]
 pub fn search() -> Html {
-    let stock = use_state(String::new);
+    let code_or_name = use_state(String::new);
 
     let oninput = {
-        let stock = stock.clone();
+        let code_or_name = code_or_name.clone();
 
         Callback::from(move |e: InputEvent| {
             let input: HtmlInputElement = e.target_unchecked_into();
             let value = input.value();
-            stock.set(value.clone());
+            code_or_name.set(value.clone());
 
             console::log_1(&JsValue::from_str(&format!("Input value: {}", value)));
         })
@@ -28,14 +41,14 @@ pub fn search() -> Html {
         <Layout>
             <h2 class="mb-4">{ "銘柄検索" }</h2>
             <div class="mb-3">
-                <input type="text" class="form-control" id="stockCode" placeholder="銘柄名・銘柄コードを入力" value={(*stock).clone()} oninput={oninput} />
+                <input type="text" class="form-control" id="stockCode" placeholder="銘柄名・銘柄コードを入力" value={(*code_or_name).clone()} oninput={oninput} />
             </div>
-            { render_link(&stock) }
+            { render_link(&code_or_name) }
         </Layout>
     }
 }
 
-fn render_link(stock_code: &UseStateHandle<String>) -> Html {
+fn render_link(code_or_name: &UseStateHandle<String>) -> Html {
     let links = vec![
         (
             "かぶたん",
@@ -63,44 +76,33 @@ fn render_link(stock_code: &UseStateHandle<String>) -> Html {
     html! {
         <div class="mt-3">
             { for links.into_iter().map(|(text, href, class)| {
-                let stock = stock_code.clone();
+                let code_or_name = code_or_name.clone();
                 html! {
                     <button onclick={Callback::from(move |_| {
-                        let stock = stock.clone();
+                        let code_or_name = code_or_name.clone();
                         spawn_local(async move {
                             if let Some(window) = window() {
-                                let url = format!("https://www.buffett-code.com/company/search?keyword={}", urlencoding::encode(&stock));
-                                let client = reqwest::Client::new();
-                                let stock_code = match client.get(&url)
-                                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-                                    .send()
-                                    .await {
-                                    Ok(res) => {
-                                        if let Ok(body) = res.text().await {
-                                            let document = Document::from(body.as_str());
-                                            document.find(Name("body"))
-                                                .next()
-                                                .and_then(|body| body.find(Name("div")).nth(0))
-                                                .and_then(|div| div.find(Name("div")).nth(0))
-                                                .and_then(|div| div.find(Name("main")).next())
-                                                .and_then(|main| main.find(Name("div")).nth(2))
-                                                .and_then(|div| div.find(Name("div")).next())
-                                                .and_then(|div| div.find(Name("div")).nth(1))
-                                                .and_then(|div| div.find(Name("div")).nth(1))
-                                                .and_then(|div| div.find(Name("div")).next())
-                                                .and_then(|div| div.find(Name("div")).next())
-                                                .and_then(|div| div.find(Name("p")).next())
-                                                .and_then(|p| p.find(Name("span")).next())
-                                                .map(|span| span.text())
-                                                .unwrap_or_else(|| stock.to_string())
+                                match Request::get(&format!("https://shoken-webapp-api-b4a1.shuttle.app/stock/{}", *code_or_name))
+                                    .send().await {
+                                    Ok(response) => {
+                                        if response.ok() {
+                                            match response.json::<Stock>().await {
+                                                Ok(stock) => {
+                                                    let url = href.replace("{}", &stock.code);
+                                                    _ = window.open_with_url_and_target(&url, "_blank");
+                                                },
+                                                Err(e) => {
+                                                    console::error_1(&JsValue::from_str(&format!("JSON parsing error: {:?}", e)));
+                                                }
+                                            }
                                         } else {
-                                            stock.to_string()
+                                            console::error_1(&JsValue::from_str(&format!("HTTP error: {} - {}", response.status(), response.status_text())));
                                         }
                                     },
-                                    Err(_) => stock.to_string(),
-                                };
-                                let url = href.replace("{}", &stock_code);
-                                let _ = window.open_with_url_and_target(&url, "_blank");
+                                    Err(e) => {
+                                        console::error_1(&JsValue::from_str(&format!("Network error: {:?}", e)));
+                                    }
+                                }
                             }
                         });
                     })} class={format!("btn {class} me-2")}>
