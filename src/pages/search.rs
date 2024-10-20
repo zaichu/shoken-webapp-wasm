@@ -10,7 +10,7 @@ use crate::components::Layout;
 #[derive(Clone, PartialEq, Deserialize, Serialize, Default)]
 struct Stock {
     pub date: String,
-    pub code: Option<String>,
+    pub code: String,
     pub name: String,
     pub market_category: String,
     pub industry_code_33: Option<String>,
@@ -96,7 +96,7 @@ fn render_stock_info(stock: &UseStateHandle<Stock>) -> Html {
                         </tr>
                         <tr>
                             <th scope="row">{ "銘柄コード" }</th>
-                            <td>{ stock.code.clone().unwrap_or_default() }</td>
+                            <td>{ &stock.code }</td>
                         </tr>
                         <tr>
                             <th scope="row">{ "マーケットカテゴリ" }</th>
@@ -149,22 +149,14 @@ fn render_link(stock: &UseStateHandle<Stock>) -> Html {
     html! {
         <div class="mt-3">
             { for links.iter().map(|(text, href, class)| {
-                if let Some(code) = &stock.code {
-                    html! {
-                        <a
-                            href={href.replace("{}", code)}
-                            target="_blank"
-                            class={format!("btn {class} me-2")}
-                        >
-                            { text }
-                        </a>
-                    }
-                } else {
-                    html! {
-                        <span class={format!("btn {class} me-2 disabled")} aria-disabled="true">
-                            { text }
-                        </span>
-                    }
+                html! {
+                    <a
+                        href={href.replace("{}", &stock.code)}
+                        target="_blank"
+                        class={format!("btn {class} me-2")}
+                    >
+                        { text }
+                    </a>
                 }
             }) }
         </div>
