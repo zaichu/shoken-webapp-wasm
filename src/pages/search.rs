@@ -10,7 +10,7 @@ use crate::components::Layout;
 #[derive(Clone, PartialEq, Deserialize, Serialize)]
 struct Stock {
     pub date: String,
-    pub code: String,
+    pub code: Option<String>,
     pub name: String,
     pub market_category: String,
     pub industry_code_33: Option<String>,
@@ -21,23 +21,44 @@ struct Stock {
     pub size_category: Option<String>,
 }
 
+impl Default for Stock {
+    fn default() -> Self {
+        Stock {
+            date: String::new(),
+            code: None,
+            name: String::new(),
+            market_category: String::new(),
+            industry_code_33: None,
+            industry_category_33: None,
+            industry_code_17: None,
+            industry_category_17: None,
+            size_code: None,
+            size_category: None,
+        }
+    }
+}
+
 #[function_component(Search)]
 pub fn search() -> Html {
-    let code = use_state(String::new);
+    let stock = use_state(|| Stock::default());
+    let code_or_name = use_state(String::new);
 
-    let onblur = {
-        let code = code.clone();
+    let oninput = {
+        let stock = stock.clone();
+        let code_or_name = code_or_name.clone();
 
-        Callback::from(move |e: FocusEvent| {
+        Callback::from(move |e: InputEvent| {
             let input: HtmlInputElement = e.target_unchecked_into();
-            let code_or_name = input.value();
+            let value = input.value();
+            code_or_name.set(value.clone());
+            stock.set(Stock::default()); // 新しい検索時にリセット
 
-            console::log_1(&JsValue::from_str(&format!("Input value: {code_or_name}")));
+            console::log_1(&JsValue::from_str(&format!("Input value: {value}")));
 
-            let code = code.clone();
+            let stock = stock.clone();
             spawn_local(async move {
                 match Request::get(&format!(
-                    "https://shoken-webapp-api-b4a1.shuttle.app/stock/{code_or_name}"
+                    "https://shoken-webapp-api-b4a1.shuttle.app/stock/{value}"
                 ))
                 .send()
                 .await
@@ -45,13 +66,11 @@ pub fn search() -> Html {
                     Ok(response) => {
                         if response.ok() {
                             match response.json::<Stock>().await {
-                                Ok(stock) => code.set(stock.code),
-                                Err(e) => {
-                                    console::error_1(&JsValue::from_str(&format!(
-                                        "JSON parsing error: {:?}",
-                                        e
-                                    )));
-                                }
+                                Ok(new_stock) => stock.set(new_stock),
+                                Err(e) => console::error_1(&JsValue::from_str(&format!(
+                                    "JSON parsing error: {:?}",
+                                    e
+                                ))),
                             }
                         } else {
                             console::error_1(&JsValue::from_str(&format!(
@@ -62,25 +81,68 @@ pub fn search() -> Html {
                         }
                     }
                     Err(e) => {
-                        console::error_1(&JsValue::from_str(&format!("Network error: {:?}", e)));
+                        console::error_1(&JsValue::from_str(&format!("Network error: {:?}", e)))
                     }
                 }
             });
-        });
+        })
     };
 
     html! {
         <Layout>
             <h2 class="mb-4">{ "銘柄検索" }</h2>
             <div class="mb-3">
-                <input type="text" class="form-control" id="stockCode" placeholder="銘柄名・銘柄コードを入力" value={(*code).clone()} onblur={onblur} />
+                <input type="text" class="form-control" id="stockCode" placeholder="銘柄名・銘柄コードを入力" value={(*code_or_name).clone()} oninput={oninput} />
             </div>
-            { render_link(&code) }
+            { render_stock_info(&stock) } // Stock情報の表示
+            { render_link(&stock) }        // リンクボタンの表示
         </Layout>
     }
 }
 
-fn render_link(code: &UseStateHandle<String>) -> Html {
+// Stock情報を表示するための関数
+fn render_stock_info(stock: &UseStateHandle<Stock>) -> Html {
+    html! {
+        <div class="card mt-4">
+            <div class="card-header">
+                { "検索結果" }
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tbody>
+                        <tr>
+                            <th scope="row">{ "銘柄名" }</th>
+                            <td>{ &stock.name }</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">{ "銘柄コード" }</th>
+                            <td>{ &stock.code.clone().unwrap_or_default() }</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">{ "マーケットカテゴリ" }</th>
+                            <td>{ &stock.market_category }</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">{ "33業種区分" }</th>
+                            <td>{ &stock.industry_category_33.clone().unwrap_or_default() }</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">{ "17業種区分" }</th>
+                            <td>{ &stock.industry_category_17.clone().unwrap_or_default() }</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">{ "規模区分" }</th>
+                            <td>{ &stock.size_category.clone().unwrap_or_default() }</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+// リンクボタンを表示するための関数
+fn render_link(stock: &UseStateHandle<Stock>) -> Html {
     let links = vec![
         (
             "かぶたん",
@@ -107,17 +169,25 @@ fn render_link(code: &UseStateHandle<String>) -> Html {
 
     html! {
         <div class="mt-3">
-            { for links.into_iter().map(|(text, href, class)| {
-                html! {
-                    <a
-                        href={href.replace("{}", code)}
-                        class={format!("btn {class} me-2")}
-                        target="_blank"
-                    >
-                        { text }
-                    </a>
+            { for links.iter().map(|(text, href, class)| {
+                if let Some(code) = &stock.code {
+                    html! {
+                        <a
+                            href={href.replace("{}", code)}
+                            target="_blank"
+                            class={format!("btn {class} me-2")}
+                        >
+                            { text }
+                        </a>
+                    }
+                } else {
+                    html! {
+                        <span class={format!("btn {class} me-2 disabled")} aria-disabled="true">
+                            { text }
+                        </span>
+                    }
                 }
-            })}
+            }) }
         </div>
     }
 }
