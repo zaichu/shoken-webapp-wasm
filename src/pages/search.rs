@@ -7,7 +7,7 @@ use yew::prelude::*;
 
 use crate::components::Layout;
 
-#[derive(Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Deserialize, Serialize, Default)]
 struct Stock {
     pub date: String,
     pub code: Option<String>,
@@ -21,26 +21,9 @@ struct Stock {
     pub size_category: Option<String>,
 }
 
-impl Default for Stock {
-    fn default() -> Self {
-        Stock {
-            date: String::new(),
-            code: None,
-            name: String::new(),
-            market_category: String::new(),
-            industry_code_33: None,
-            industry_category_33: None,
-            industry_code_17: None,
-            industry_category_17: None,
-            size_code: None,
-            size_category: None,
-        }
-    }
-}
-
 #[function_component(Search)]
 pub fn search() -> Html {
-    let stock = use_state(|| Stock::default());
+    let stock = use_state(Stock::default);
     let code_or_name = use_state(String::new);
 
     let oninput = {
@@ -65,12 +48,13 @@ pub fn search() -> Html {
                 {
                     Ok(response) => {
                         if response.ok() {
-                            match response.json::<Stock>().await {
-                                Ok(new_stock) => stock.set(new_stock),
-                                Err(e) => console::error_1(&JsValue::from_str(&format!(
+                            if let Err(e) = response.json::<Stock>().await {
+                                console::error_1(&JsValue::from_str(&format!(
                                     "JSON parsing error: {:?}",
                                     e
-                                ))),
+                                )));
+                            } else if let Ok(new_stock) = response.json::<Stock>().await {
+                                stock.set(new_stock);
                             }
                         } else {
                             console::error_1(&JsValue::from_str(&format!(
@@ -102,6 +86,8 @@ pub fn search() -> Html {
 
 // Stock情報を表示するための関数
 fn render_stock_info(stock: &UseStateHandle<Stock>) -> Html {
+    let stock = stock.clone();
+
     html! {
         <div class="card mt-4">
             <div class="card-header">
@@ -116,7 +102,7 @@ fn render_stock_info(stock: &UseStateHandle<Stock>) -> Html {
                         </tr>
                         <tr>
                             <th scope="row">{ "銘柄コード" }</th>
-                            <td>{ &stock.code.clone().unwrap_or_default() }</td>
+                            <td>{ stock.code.clone().unwrap_or_default() }</td>
                         </tr>
                         <tr>
                             <th scope="row">{ "マーケットカテゴリ" }</th>
@@ -124,15 +110,15 @@ fn render_stock_info(stock: &UseStateHandle<Stock>) -> Html {
                         </tr>
                         <tr>
                             <th scope="row">{ "33業種区分" }</th>
-                            <td>{ &stock.industry_category_33.clone().unwrap_or_default() }</td>
+                            <td>{ stock.industry_category_33.clone().unwrap_or_default() }</td>
                         </tr>
                         <tr>
                             <th scope="row">{ "17業種区分" }</th>
-                            <td>{ &stock.industry_category_17.clone().unwrap_or_default() }</td>
+                            <td>{ stock.industry_category_17.clone().unwrap_or_default() }</td>
                         </tr>
                         <tr>
                             <th scope="row">{ "規模区分" }</th>
-                            <td>{ &stock.size_category.clone().unwrap_or_default() }</td>
+                            <td>{ stock.size_category.clone().unwrap_or_default() }</td>
                         </tr>
                     </tbody>
                 </table>
