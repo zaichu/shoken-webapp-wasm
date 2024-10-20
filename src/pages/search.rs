@@ -2,7 +2,7 @@ use gloo_net::http::Request;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{console, window, HtmlInputElement};
+use web_sys::{console, HtmlInputElement};
 use yew::prelude::*;
 
 use crate::components::Layout;
@@ -23,32 +23,64 @@ struct Stock {
 
 #[function_component(Search)]
 pub fn search() -> Html {
-    let code_or_name = use_state(String::new);
+    let code = use_state(String::new);
 
-    let oninput = {
-        let code_or_name = code_or_name.clone();
+    let onblur = {
+        let code = code.clone();
 
-        Callback::from(move |e: InputEvent| {
+        Callback::from(move |e: FocusEvent| {
             let input: HtmlInputElement = e.target_unchecked_into();
-            let value = input.value();
-            code_or_name.set(value.clone());
+            let code_or_name = input.value();
 
-            console::log_1(&JsValue::from_str(&format!("Input value: {}", value)));
-        })
+            console::log_1(&JsValue::from_str(&format!("Input value: {code_or_name}")));
+
+            let code = code.clone();
+            spawn_local(async move {
+                match Request::get(&format!(
+                    "https://shoken-webapp-api-b4a1.shuttle.app/stock/{code_or_name}"
+                ))
+                .send()
+                .await
+                {
+                    Ok(response) => {
+                        if response.ok() {
+                            match response.json::<Stock>().await {
+                                Ok(stock) => code.set(stock.code),
+                                Err(e) => {
+                                    console::error_1(&JsValue::from_str(&format!(
+                                        "JSON parsing error: {:?}",
+                                        e
+                                    )));
+                                }
+                            }
+                        } else {
+                            console::error_1(&JsValue::from_str(&format!(
+                                "HTTP error: {} - {}",
+                                response.status(),
+                                response.status_text()
+                            )));
+                        }
+                    }
+                    Err(e) => {
+                        console::error_1(&JsValue::from_str(&format!("Network error: {:?}", e)));
+                    }
+                }
+            });
+        });
     };
 
     html! {
         <Layout>
             <h2 class="mb-4">{ "銘柄検索" }</h2>
             <div class="mb-3">
-                <input type="text" class="form-control" id="stockCode" placeholder="銘柄名・銘柄コードを入力" value={(*code_or_name).clone()} oninput={oninput} />
+                <input type="text" class="form-control" id="stockCode" placeholder="銘柄名・銘柄コードを入力" value={(*code).clone()} onblur={onblur} />
             </div>
-            { render_link(&code_or_name) }
+            { render_link(&code) }
         </Layout>
     }
 }
 
-fn render_link(code_or_name: &UseStateHandle<String>) -> Html {
+fn render_link(code: &UseStateHandle<String>) -> Html {
     let links = vec![
         (
             "かぶたん",
@@ -76,38 +108,14 @@ fn render_link(code_or_name: &UseStateHandle<String>) -> Html {
     html! {
         <div class="mt-3">
             { for links.into_iter().map(|(text, href, class)| {
-                let code_or_name = code_or_name.clone();
                 html! {
-                    <button onclick={Callback::from(move |_| {
-                        let code_or_name = code_or_name.clone();
-                        spawn_local(async move {
-                            if let Some(window) = window() {
-                                match Request::get(&format!("https://shoken-webapp-api-b4a1.shuttle.app/stock/{}", *code_or_name))
-                                    .send().await {
-                                    Ok(response) => {
-                                        if response.ok() {
-                                            match response.json::<Stock>().await {
-                                                Ok(stock) => {
-                                                    let url = href.replace("{}", &stock.code);
-                                                    _ = window.open_with_url_and_target(&url, "_blank");
-                                                },
-                                                Err(e) => {
-                                                    console::error_1(&JsValue::from_str(&format!("JSON parsing error: {:?}", e)));
-                                                }
-                                            }
-                                        } else {
-                                            console::error_1(&JsValue::from_str(&format!("HTTP error: {} - {}", response.status(), response.status_text())));
-                                        }
-                                    },
-                                    Err(e) => {
-                                        console::error_1(&JsValue::from_str(&format!("Network error: {:?}", e)));
-                                    }
-                                }
-                            }
-                        });
-                    })} class={format!("btn {class} me-2")}>
+                    <a
+                        href={href.replace("{}", code)}
+                        class={format!("btn {class} me-2")}
+                        target="_blank"
+                    >
                         { text }
-                    </button>
+                    </a>
                 }
             })}
         </div>
