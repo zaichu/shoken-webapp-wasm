@@ -48,13 +48,10 @@ pub fn search() -> Html {
                 {
                     Ok(response) => {
                         if response.ok() {
-                            if let Err(e) = response.json::<Stock>().await {
-                                console::error_1(&JsValue::from_str(&format!(
-                                    "JSON parsing error: {:?}",
-                                    e
-                                )));
-                            } else if let Ok(new_stock) = response.json::<Stock>().await {
+                            if let Ok(new_stock) = response.json::<Stock>().await {
                                 stock.set(new_stock);
+                            } else {
+                                console::error_1(&JsValue::from_str("JSON parsing error."));
                             }
                         } else {
                             console::error_1(&JsValue::from_str(&format!(
@@ -74,7 +71,7 @@ pub fn search() -> Html {
 
     html! {
         <Layout>
-            <h2 class="mb-4">{ "銘柄検索" }</h2>
+            <h2 class="mb-4 text-center">{ "銘柄検索" }</h2>
             <div class="mb-3">
                 <input type="text" class="form-control" id="stockCode" placeholder="銘柄名・銘柄コードを入力" value={(*code_or_name).clone()} oninput={oninput} />
             </div>
@@ -86,18 +83,16 @@ pub fn search() -> Html {
 
 // Stock情報を表示するための関数
 fn render_stock_info(stock: &UseStateHandle<Stock>) -> Html {
-    let stock = stock.clone();
-
     html! {
         <div class="card mt-4">
-            <div class="card-header">
+            <div class="card-header bg-primary text-white">
                 { "検索結果" }
             </div>
             <div class="card-body">
-                <table class="table">
+                <table class="table table-sm">
                     <tbody>
                         <tr>
-                            <th scope="row">{ "銘柄名" }</th>
+                            <th scope="row" width="160px">{ "銘柄名" }</th>
                             <td>{ &stock.name }</td>
                         </tr>
                         <tr>
