@@ -34,7 +34,7 @@ pub fn search() -> Html {
             let input: HtmlInputElement = e.target_unchecked_into();
             let value = input.value();
             code_or_name.set(value.clone());
-            stock.set(Stock::default()); // 新しい検索時にリセット
+            stock.set(Stock::default());
 
             console::log_1(&JsValue::from_str(&format!("Input value: {value}")));
 
@@ -75,13 +75,12 @@ pub fn search() -> Html {
             <div class="mb-3">
                 <input type="text" class="form-control" id="stockCode" placeholder="銘柄名・銘柄コードを入力" value={(*code_or_name).clone()} oninput={oninput} />
             </div>
-            { render_stock_info(&stock) } // Stock情報の表示
-            { render_link(&stock) }        // リンクボタンの表示
+            { render_stock_info(&stock) }
+            { render_link(&stock) }
         </Layout>
     }
 }
 
-// Stock情報を表示するための関数
 fn render_stock_info(stock: &UseStateHandle<Stock>) -> Html {
     html! {
         <div class="card mt-4">
@@ -122,7 +121,6 @@ fn render_stock_info(stock: &UseStateHandle<Stock>) -> Html {
     }
 }
 
-// リンクボタンを表示するための関数
 fn render_link(stock: &UseStateHandle<Stock>) -> Html {
     let links = vec![
         (
