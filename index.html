@@ -6,15 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>証券Web</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="modulepreload" href="/shoken-webapp-wasm/shoken-webapp-wasm-db10ee89c744998c.js" crossorigin=anonymous integrity="sha384-/L6XXlgQcjiX6tJR103JKUjxwkz0HwH3gKcrQBsOZj52RvoIU6q+9g5P478fpW63"><link rel="preload" href="/shoken-webapp-wasm/shoken-webapp-wasm-db10ee89c744998c_bg.wasm" crossorigin=anonymous integrity="sha384-4J7kUuxF4aJNOI1+jdt7jCy3YudWS+uryetSEAobPrFPR/4mdv8ex8NWUZzDadNq" as="fetch" type="application/wasm"></head>
+    <script type="text/javascript">
+        (function (l) {
+            if (l.search[1] === '/') {
+                var decoded = l.search.slice(1).split('&').map(function (s) {
+                    return s.replace(/~and~/g, '&')
+                }).join('?');
+                window.history.replaceState(null, null,
+                    l.pathname.slice(0, -1) + decoded + l.hash
+                );
+            }
+        }(window.location))
+    </script>
+<link rel="modulepreload" href="/shoken-webapp-wasm/shoken-webapp-wasm-13ce7d456cacec72.js" crossorigin=anonymous integrity="sha384-hUhDZlBTytTfHJ1gqYeu716bF7TAiWoBjPudJBV2dk9dK23R2f0XZyrreAD2qm5C"><link rel="preload" href="/shoken-webapp-wasm/shoken-webapp-wasm-13ce7d456cacec72_bg.wasm" crossorigin=anonymous integrity="sha384-yoAvfBDIWpC4oPZsWOY2Ywgst7dOGX3PmvwN7tu5YAuyR1JXZCHJpWVwe4vVLN4x" as="fetch" type="application/wasm"></head>
 
 <body>
     <div id="app"></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<script type="module" nonce="v6DjQ/S5iYb2n9vFdKi7pg==">
-import init, * as bindings from '/shoken-webapp-wasm/shoken-webapp-wasm-db10ee89c744998c.js';
-const wasm = await init('/shoken-webapp-wasm/shoken-webapp-wasm-db10ee89c744998c_bg.wasm');
+<script type="module" nonce="LQKnRHNsvBFFBzQ7ovTnVQ==">
+import init, * as bindings from '/shoken-webapp-wasm/shoken-webapp-wasm-13ce7d456cacec72.js';
+const wasm = await init('/shoken-webapp-wasm/shoken-webapp-wasm-13ce7d456cacec72_bg.wasm');
 
 
 window.wasmBindings = bindings;
