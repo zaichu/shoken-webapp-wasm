@@ -5,7 +5,7 @@ use yew::prelude::*;
 pub fn receipts() -> Html {
     html! {
         <Layout>
-            <h2 class="mb-4">{ "受取金" }</h2>
+            <h2 class="mb-4 text-center">{ "受取金" }</h2>
             <p class="lead">{ "ここで受取金を管理できます。" }</p>
 
             <div class="collapse navbar-collapse" id="navbarNav">
