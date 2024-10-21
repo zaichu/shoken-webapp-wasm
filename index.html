@@ -10,20 +10,20 @@
         (function () {
             var redirect = sessionStorage.redirect;
             delete sessionStorage.redirect;
-            if (redirect && redirect != location.href) {
+            if (redirect && redirect !== location.href) {
                 history.replaceState(null, null, redirect);
             }
         })();
     </script>
-<link rel="modulepreload" href="/shoken-webapp-wasm/shoken-webapp-wasm-5c3d3bfa07b96482.js" crossorigin=anonymous integrity="sha384-g2gvUz11uO/A/eb4Sk1XxVXOql3ytBzlBWJxowJ22kGw12cPLn7M2UXVIRFeGk3M"><link rel="preload" href="/shoken-webapp-wasm/shoken-webapp-wasm-5c3d3bfa07b96482_bg.wasm" crossorigin=anonymous integrity="sha384-rzvolp8cpYNphwI5gDdp+wF/yv6g9O+ytgqvBw2rOVKdbL4lvvL1Jgw8u/l7mfFC" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/shoken-webapp-wasm/shoken-webapp-wasm-c59530a86b3b6d57.js" crossorigin=anonymous integrity="sha384-UEQyM8fVtCOM4Oogb/mbkd/0yFMuhMW0ogEJW6nBKatpvNGxzkOWCA7xPwiqhhPG"><link rel="preload" href="/shoken-webapp-wasm/shoken-webapp-wasm-c59530a86b3b6d57_bg.wasm" crossorigin=anonymous integrity="sha384-r+vgyhHD7Gat2sulKGXn4CLeEzpELb4suMfqb6IMw4BioLUQZ3nSSwHu/yXshxlt" as="fetch" type="application/wasm"></head>
 
 <body>
     <div id="app"></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<script type="module" nonce="FCvKNUIn4d9TRrs2qP5n/g==">
-import init, * as bindings from '/shoken-webapp-wasm/shoken-webapp-wasm-5c3d3bfa07b96482.js';
-const wasm = await init('/shoken-webapp-wasm/shoken-webapp-wasm-5c3d3bfa07b96482_bg.wasm');
+<script type="module" nonce="DjL4yb+6y6/wRkaR3RY5Ww==">
+import init, * as bindings from '/shoken-webapp-wasm/shoken-webapp-wasm-c59530a86b3b6d57.js';
+const wasm = await init('/shoken-webapp-wasm/shoken-webapp-wasm-c59530a86b3b6d57_bg.wasm');
 
 
 window.wasmBindings = bindings;
