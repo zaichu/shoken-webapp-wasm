@@ -40,30 +40,9 @@ pub fn search() -> Html {
 
             let stock = stock.clone();
             spawn_local(async move {
-                match Request::get(&format!(
-                    "https://shoken-webapp-api-b4a1.shuttle.app/stock/{value}"
-                ))
-                .send()
-                .await
-                {
-                    Ok(response) => {
-                        if response.ok() {
-                            if let Ok(new_stock) = response.json::<Stock>().await {
-                                stock.set(new_stock);
-                            } else {
-                                console::error_1(&JsValue::from_str("JSON parsing error."));
-                            }
-                        } else {
-                            console::error_1(&JsValue::from_str(&format!(
-                                "HTTP error: {} - {}",
-                                response.status(),
-                                response.status_text()
-                            )));
-                        }
-                    }
-                    Err(e) => {
-                        console::error_1(&JsValue::from_str(&format!("Network error: {:?}", e)))
-                    }
+                match fetch_stock_data(&value).await {
+                    Ok(new_stock) => stock.set(new_stock),
+                    Err(err) => console::log_1(&JsValue::from_str(&err)),
                 }
             });
         })
@@ -73,11 +52,33 @@ pub fn search() -> Html {
         <Layout>
             <h2 class="mb-4 text-center">{ "銘柄検索" }</h2>
             <div class="mb-3">
-                <input type="text" class="form-control" id="stockCode" placeholder="銘柄名・銘柄コードを入力" value={(*code_or_name).clone()} oninput={oninput} />
+                <input
+                    type="text"
+                    class="form-control"
+                    id="stockCode"
+                    placeholder="銘柄名・銘柄コードを入力"
+                    value={(*code_or_name).clone()}
+                    oninput={oninput}
+                />
             </div>
             { render_stock_info(&stock) }
             { render_link(&stock) }
         </Layout>
+    }
+}
+
+async fn fetch_stock_data(value: &str) -> Result<Stock, String> {
+    let url = format!("https://shoken-webapp-api-b4a1.shuttle.app/stock/{}", value);
+    let response = Request::get(&url).send().await.map_err(|e| e.to_string())?;
+
+    if response.ok() {
+        response.json::<Stock>().await.map_err(|e| e.to_string())
+    } else {
+        Err(format!(
+            "HTTP error: {} - {}",
+            response.status(),
+            response.status_text()
+        ))
     }
 }
 
@@ -90,34 +91,25 @@ fn render_stock_info(stock: &UseStateHandle<Stock>) -> Html {
             <div class="card-body">
                 <table class="table table-sm">
                     <tbody>
-                        <tr>
-                            <th scope="row" width="160px">{ "銘柄名" }</th>
-                            <td>{ &stock.name }</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">{ "銘柄コード" }</th>
-                            <td>{ &stock.code }</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">{ "マーケットカテゴリ" }</th>
-                            <td>{ &stock.market_category }</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">{ "33業種区分" }</th>
-                            <td>{ stock.industry_category_33.clone().unwrap_or_default() }</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">{ "17業種区分" }</th>
-                            <td>{ stock.industry_category_17.clone().unwrap_or_default() }</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">{ "規模区分" }</th>
-                            <td>{ stock.size_category.clone().unwrap_or_default() }</td>
-                        </tr>
+                        { render_table_row("銘柄名", &stock.name) }
+                        { render_table_row("銘柄コード", &stock.code) }
+                        { render_table_row("マーケットカテゴリ", &stock.market_category) }
+                        { render_table_row("33業種区分", &stock.industry_category_33.clone().unwrap_or_default()) }
+                        { render_table_row("17業種区分", &stock.industry_category_17.clone().unwrap_or_default()) }
+                        { render_table_row("規模区分", &stock.size_category.clone().unwrap_or_default()) }
                     </tbody>
                 </table>
             </div>
         </div>
+    }
+}
+
+fn render_table_row(label: &str, value: &str) -> Html {
+    html! {
+        <tr>
+            <th scope="row" width="160px">{ label }</th>
+            <td>{ value }</td>
+        </tr>
     }
 }
 
@@ -148,17 +140,19 @@ fn render_link(stock: &UseStateHandle<Stock>) -> Html {
 
     html! {
         <div class="mt-3">
-            { for links.iter().map(|(text, href, class)| {
-                html! {
-                    <a
-                        href={href.replace("{}", &stock.code)}
-                        target="_blank"
-                        class={format!("btn {class} me-2")}
-                    >
-                        { text }
-                    </a>
-                }
-            }) }
+            { for links.iter().map(|(text, href, class)| render_link_button(text, href, class, &stock.code)) }
         </div>
+    }
+}
+
+fn render_link_button(text: &str, href: &str, class: &str, code: &str) -> Html {
+    html! {
+        <a
+            href={href.replace("{}", code)}
+            target="_blank"
+            class={format!("btn {} me-2", class)}
+        >
+            { text }
+        </a>
     }
 }
