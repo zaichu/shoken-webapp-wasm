@@ -26,7 +26,7 @@ pub fn search() -> Html {
     let stock = use_state(Stock::default);
     let code_or_name = use_state(String::new);
 
-    let oninput = {
+    let on_input = {
         let stock = stock.clone();
         let code_or_name = code_or_name.clone();
 
@@ -58,7 +58,7 @@ pub fn search() -> Html {
                     id="stockCode"
                     placeholder="銘柄名・銘柄コードを入力"
                     value={(*code_or_name).clone()}
-                    oninput={oninput}
+                    oninput={on_input}
                 />
             </div>
             { render_stock_info(&stock) }
