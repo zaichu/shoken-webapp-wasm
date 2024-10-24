@@ -1,7 +1,9 @@
-use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use crate::components::Layout;
+use crate::components::{
+    receipts::{dividend_list::DividendList, profit_and_loss::ProfitAndLoss},
+    Layout,
+};
 
 #[derive(Clone, PartialEq)]
 pub enum ReceiptsType {
@@ -12,7 +14,6 @@ pub enum ReceiptsType {
 #[function_component(Receipts)]
 pub fn receipts() -> Html {
     let selected_type = use_state(|| ReceiptsType::Dividend);
-    let csv_file = use_state(|| String::new());
 
     let on_click = {
         let selected_type = selected_type.clone();
@@ -38,54 +39,12 @@ pub fn receipts() -> Html {
                     </div>
                 </div>
             </nav>
-            <ReceiptsContent csv_file={csv_file} receipts_type={(*selected_type).clone()} />
-        </Layout>
-    }
-}
-
-#[derive(Properties, PartialEq)]
-struct ReceiptsContentProps {
-    csv_file: UseStateHandle<String>,
-    receipts_type: ReceiptsType,
-}
-
-#[function_component(ReceiptsContent)]
-fn receipts_content(props: &ReceiptsContentProps) -> Html {
-    let on_change = {
-        let csv_file = props.csv_file.clone();
-        Callback::from(move |e: Event| {
-            let input: HtmlInputElement = e.target_unchecked_into();
-            if let Some(files) = input.files() {
-                if let Some(file) = files.get(0) {
-                    csv_file.set(file.name());
-                }
-            }
-        })
-    };
-
-    let file_name = if props.csv_file.is_empty() {
-        "ファイルが選択されていません".to_string()
-    } else {
-        (*props.csv_file).clone().to_string()
-    };
-
-    html! {
-        <>
-            <div class="input-group">
-                <label class="input-group-btn">
-                    <span class="btn btn-primary">
-                        {"CSVファイル選択"}
-                        <input type="file" accept=".csv" style="display:none" onchange={on_change} />
-                    </span>
-                </label>
-                <input type="text" class="form-control" readonly=true value={file_name} />
-            </div>
             <div class="mt-4">
-                { match props.receipts_type {
-                    ReceiptsType::Dividend => html! { <p>{ "配当金のデータを表示します。" }</p> },
-                    ReceiptsType::ProfitAndLoss => html! { <p>{ "実益損益のデータを表示します。" }</p> },
+                { match (*selected_type).clone() {
+                    ReceiptsType::Dividend => html! { <DividendList /> } ,
+                    ReceiptsType::ProfitAndLoss => html! { <ProfitAndLoss /> },
                 }}
             </div>
-        </>
+        </Layout>
     }
 }
