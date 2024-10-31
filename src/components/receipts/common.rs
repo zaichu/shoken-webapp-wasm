@@ -1,11 +1,10 @@
-use web_sys::HtmlInputElement;
-use yew::prelude::*;
+use chrono::NaiveDate;
 
 use anyhow::{anyhow, Result};
 use csv::StringRecord;
 use encoding_rs::SHIFT_JIS;
 
-pub trait TemplateModel {
+pub trait Common {
     fn read_csv(bytes: Vec<u8>) -> Result<Vec<StringRecord>> {
         let (cow, _, had_errors) = SHIFT_JIS.decode(&bytes);
         if had_errors {
@@ -71,44 +70,55 @@ pub trait TemplateModel {
             result
         }
     }
-}
 
-#[function_component(Template)]
-pub fn template(props: &yew::html::ChildrenProps) -> Html {
-    let csv_file = use_state(|| String::new());
+    fn parse_date(&self, date_str: Option<&str>) -> Option<NaiveDate> {
+        match date_str {
+            Some(date_str) => {
+                let date = NaiveDate::parse_from_str(&date_str, "%Y/%m/%d")
+                    .map_err(|e| anyhow!("Failed to parse date '{}': {}", date_str, e));
 
-    let on_change = {
-        let csv_file = csv_file.clone();
-        Callback::from(move |e: Event| {
-            let input: HtmlInputElement = e.target_unchecked_into();
-            if let Some(files) = input.files() {
-                if let Some(file) = files.get(0) {
-                    csv_file.set(file.name());
+                match date {
+                    Ok(date) => Some(date),
+                    Err(e) => {
+                        println!("{e}");
+                        None
+                    }
                 }
             }
-        })
-    };
+            None => None,
+        }
+    }
 
-    let file_name = if csv_file.is_empty() {
-        "CSVファイルを選択してください。".to_string()
-    } else {
-        (*csv_file).clone().to_string()
-    };
+    fn parse_int(&self, num_str: Option<&str>) -> Option<i32> {
+        match num_str {
+            Some(s) => match s.replace(",", "").parse::<i32>() {
+                Ok(n) => Some(n),
+                Err(e) => {
+                    println!("Failed to parse integer '{}': {}", s, e);
+                    None
+                }
+            },
+            None => None,
+        }
+    }
 
-    html! {
-        <>
-            <div class="input-group">
-                <label class="input-group-btn">
-                    <span class="btn btn-primary">
-                        {"CSVファイル選択"}
-                        <input type="file" accept=".csv" style="display:none" onchange={on_change} />
-                    </span>
-                </label>
-                <input type="text" class="form-control" readonly=true value={file_name} />
-            </div>
-            <div class="mt-4">
-                { for props.children.iter() }
-            </div>
-        </>
+    fn parse_float(&self, num_str: Option<&str>) -> Option<f64> {
+        match num_str {
+            Some(s) => match s.replace(",", "").parse::<f64>() {
+                Ok(n) => Some(n),
+                Err(e) => {
+                    println!("Failed to parse float '{}': {}", s, e);
+                    None
+                }
+            },
+            None => None,
+        }
+    }
+
+    fn parse_string(&self, value: Option<&str>) -> Option<String> {
+        match value {
+            Some(s) => Some(s.to_string()),
+            None => None,
+        }
     }
 }

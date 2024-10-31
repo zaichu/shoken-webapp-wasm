@@ -21,8 +21,8 @@ struct Stock {
     pub size_category: Option<String>,
 }
 
-#[function_component(Search)]
-pub fn search() -> Html {
+#[function_component]
+pub fn Search() -> Html {
     let stock = use_state(Stock::default);
     let code_or_name = use_state(String::new);
 

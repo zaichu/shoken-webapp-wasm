@@ -11,8 +11,8 @@ pub enum ReceiptsType {
     ProfitAndLoss,
 }
 
-#[function_component(Receipts)]
-pub fn receipts() -> Html {
+#[function_component]
+pub fn Receipts() -> Html {
     let selected_type = use_state(|| ReceiptsType::Dividend);
 
     let on_click = {
@@ -30,7 +30,7 @@ pub fn receipts() -> Html {
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav">
                             <li class="nav-item">
-                                <button class="nav-link" onclick={on_click.reform(|_| ReceiptsType::Dividend)}>{ "配当金" }</button>
+                                <button class="nav-link" onclick={on_click.clone().reform(|_| ReceiptsType::Dividend)}>{ "配当金" }</button>
                             </li>
                             <li class="nav-item">
                                 <button class="nav-link" onclick={on_click.reform(|_| ReceiptsType::ProfitAndLoss)}>{ "実益損益" }</button>

@@ -1,8 +1,8 @@
 use crate::components::Layout;
 use yew::prelude::*;
 
-#[function_component(Home)]
-pub fn home() -> Html {
+#[function_component]
+pub fn Home() -> Html {
     html! {
         <Layout>
             <div class="jumbotron">
