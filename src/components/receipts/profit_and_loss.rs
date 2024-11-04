@@ -48,24 +48,23 @@ impl ProfitAndLoss {
     }
 
     fn render_profit_and_loss_list(&self) -> Html {
-        let headers = ProfitAndLossProps::new().get_all_fields();
         html! {
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">{ "実益損益" }</h5>
                 </div>
                 if self.csv_file.is_some(){
-                    { self.render_table(&headers) }
+                    { self.render_table() }
                 }
             </div>
         }
     }
 
-    fn render_table(&self, headers: &FieldsMap) -> Html {
+    fn render_table(&self) -> Html {
         html! {
             <div class="table-responsive" style="max-height: 500px;">
                 <table class="table table-bordered">
-                    { self.render_table_header(headers) }
+                    { self.render_table_header() }
                     <tbody>
                         { self.render_table_body() }
                     </tbody>
@@ -74,7 +73,8 @@ impl ProfitAndLoss {
         }
     }
 
-    fn render_table_header(&self, headers: &FieldsMap) -> Html {
+    fn render_table_header(&self) -> Html {
+        let headers = ProfitAndLossProps::new().get_all_fields();
         html! {
             <thead class="thead-light">
                 <tr>
