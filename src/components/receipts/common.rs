@@ -4,6 +4,8 @@ use anyhow::{anyhow, Result};
 use csv::StringRecord;
 use encoding_rs::SHIFT_JIS;
 
+use crate::setting::{DATE_FORMAT_KEYS, NUMBER_FORMAT_KEYS, YEN_FORMAT_KEYS};
+
 pub fn read_csv(bytes: Vec<u8>) -> Result<Vec<StringRecord>> {
     let (cow, _, had_errors) = SHIFT_JIS.decode(&bytes);
     if had_errors {
@@ -22,23 +24,14 @@ pub fn read_csv(bytes: Vec<u8>) -> Result<Vec<StringRecord>> {
 }
 
 pub fn format_value(key: &str, value: &str) -> String {
-    match key {
-        "settlement_date" | "trade_date" => format_date(value),
-        "asked_price"
-        | "dividends_before_tax"
-        | "net_amount_received"
-        | "proceeds"
-        | "profit_and_loss"
-        | "purchase_price"
-        | "realized_profit_and_loss"
-        | "shares"
-        | "taxes"
-        | "total_dividends_before_tax"
-        | "total_net_amount_received"
-        | "total_realized_profit_and_loss"
-        | "total_taxes"
-        | "withholding_tax" => format_number(value),
-        _ => value.to_string(),
+    if YEN_FORMAT_KEYS.contains(key) {
+        format_yen(value)
+    } else if NUMBER_FORMAT_KEYS.contains(key) {
+        format_number(value)
+    } else if DATE_FORMAT_KEYS.contains(key) {
+        format_date(value)
+    } else {
+        value.to_string()
     }
 }
 
@@ -47,6 +40,10 @@ pub fn format_date(s: &str) -> String {
 }
 
 pub fn format_number(s: &str) -> String {
+    if s.is_empty() {
+        return "".to_string();
+    }
+
     let is_negative = s.starts_with('-');
     let s = if is_negative { &s[1..] } else { s };
     let s = s.replace(",", ""); // カンマを除去
@@ -68,6 +65,14 @@ pub fn format_number(s: &str) -> String {
     } else {
         result
     }
+}
+
+pub fn format_yen(s: &str) -> String {
+    if s.is_empty() {
+        return "".to_string();
+    }
+
+    format!("¥ {}", format_number(s))
 }
 
 pub fn parse_date(date_str: Option<&str>) -> Option<NaiveDate> {

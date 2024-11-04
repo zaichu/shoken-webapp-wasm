@@ -19,7 +19,7 @@ pub struct ProfitAndLoss {
 
 pub enum ProfitAndLossMsg {
     CSVFileSelect(Option<File>),
-    SetprofitAndLossMap(Vec<u8>),
+    SetProfitAndLossMap(Vec<u8>),
 }
 
 impl ProfitAndLoss {
@@ -68,7 +68,7 @@ impl ProfitAndLoss {
                 </div>
                 if let Some(_) = &self.csv_file {
                     <div class="table-responsive" style="max-height: 500px;">
-                        <table class="table table-striped table-bordered" style="table-layout: auto; width: 100%;">
+                        <table class="table table-bordered">
                             { self.render_table_header(&headers) }
                             <tbody>
                                 { self.render_table_body() }
@@ -145,6 +145,7 @@ impl ProfitAndLoss {
 
     fn process_csv_content(&self, content: Vec<u8>) -> Result<()> {
         let records = common::read_csv(content)?;
+        self.profit_and_loss_map.borrow_mut().clear();
         for record in records {
             let profit_and_loss = ProfitAndLossProps::from_record(record);
             if let Some(trade_date) = profit_and_loss.trade_date {
@@ -180,7 +181,7 @@ impl Component for ProfitAndLoss {
                         let content = Self::read_file(&file).await;
                         match content {
                             Ok(content) => {
-                                link.send_message(ProfitAndLossMsg::SetprofitAndLossMap(content));
+                                link.send_message(ProfitAndLossMsg::SetProfitAndLossMap(content));
                             }
                             Err(err) => {
                                 console::log_1(&JsValue::from_str(&format!("{:?}", err)));
@@ -189,7 +190,7 @@ impl Component for ProfitAndLoss {
                     }
                 });
             }
-            ProfitAndLossMsg::SetprofitAndLossMap(content) => {
+            ProfitAndLossMsg::SetProfitAndLossMap(content) => {
                 let result = self.process_csv_content(content);
                 if result.is_err() {
                     let err = result.err();
@@ -215,6 +216,7 @@ impl Component for ProfitAndLoss {
 
 #[derive(PartialEq, Properties, Debug, Clone)]
 pub struct ProfitAndLossProps {
+    pub tr_class: String,                            // 行のclass
     pub trade_date: Option<NaiveDate>,               // 約定日
     pub settlement_date: Option<NaiveDate>,          // 受渡日
     pub security_code: Option<String>,               // 銘柄コード
@@ -233,6 +235,7 @@ pub struct ProfitAndLossProps {
 impl ProfitAndLossProps {
     pub fn new() -> Self {
         ProfitAndLossProps {
+            tr_class: "".to_string(),
             trade_date: None,
             settlement_date: None,
             security_code: None,
@@ -250,6 +253,7 @@ impl ProfitAndLossProps {
     }
     pub fn from_record(record: StringRecord) -> Self {
         ProfitAndLossProps {
+            tr_class: "".to_string(),
             trade_date: common::parse_date(record.get(0)),
             settlement_date: common::parse_date(record.get(1)),
             security_code: common::parse_string(record.get(2)),
@@ -319,6 +323,7 @@ impl ProfitAndLossProps {
         let total = specific_account_total + nisa_account_total;
 
         ProfitAndLossProps {
+            tr_class: "table-success".to_string(),
             trade_date: None,
             settlement_date: None,
             security_code: None,
@@ -347,13 +352,13 @@ impl Component for ProfitAndLossProps {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
         <>
-        <tr>
+        <tr class={&self.tr_class}>
             { for self.get_all_fields().iter().map(|(key, value)| {
                 let value = value.as_deref().unwrap_or("");
                 let value = common::format_value(key, value);
                 let style = "overflow-wrap: break-word; white-space: normal;";
                 let mut class = "text-nowrap".to_string();
-                if value.starts_with("-") {
+                if value.starts_with("¥ -") {
                      class = format!("{} text-danger", class);
                 }
 
