@@ -5,9 +5,8 @@ use wasm_bindgen::JsValue;
 use web_sys::{console, File, HtmlInputElement};
 use yew::prelude::*;
 
+use crate::components::receipts::common;
 use crate::setting::TAX_RATE;
-
-use super::common::Common;
 
 #[derive(PartialEq, Properties, Debug, Clone)]
 pub struct ProfitAndLoss {
@@ -18,8 +17,6 @@ pub struct ProfitAndLoss {
 pub enum ProfitAndLossMsg {
     CSVFileSelect(Option<File>),
 }
-
-impl Common for ProfitAndLoss {}
 
 impl Component for ProfitAndLoss {
     type Message = ProfitAndLossMsg;
@@ -108,16 +105,16 @@ pub struct ProfitAndLossProps {
 impl ProfitAndLossProps {
     pub fn from_record(&self, record: StringRecord) -> Self {
         ProfitAndLossProps {
-            trade_date: self.parse_date(record.get(0)),
-            settlement_date: self.parse_date(record.get(1)),
-            security_code: self.parse_string(record.get(2)),
-            security_name: self.parse_string(record.get(3)),
-            account: self.parse_string(record.get(4)),
-            shares: self.parse_int(record.get(7)),
-            asked_price: self.parse_float(record.get(8)),
-            proceeds: self.parse_int(record.get(9)),
-            purchase_price: self.parse_float(record.get(10)),
-            realized_profit_and_loss: self.parse_int(record.get(11)),
+            trade_date: common::parse_date(record.get(0)),
+            settlement_date: common::parse_date(record.get(1)),
+            security_code: common::parse_string(record.get(2)),
+            security_name: common::parse_string(record.get(3)),
+            account: common::parse_string(record.get(4)),
+            shares: common::parse_int(record.get(7)),
+            asked_price: common::parse_float(record.get(8)),
+            proceeds: common::parse_int(record.get(9)),
+            purchase_price: common::parse_float(record.get(10)),
+            realized_profit_and_loss: common::parse_int(record.get(11)),
             total_realized_profit_and_loss: None,
             withholding_tax: None,
             profit_and_loss: None,
@@ -193,8 +190,6 @@ impl ProfitAndLossProps {
         }
     }
 }
-
-impl Common for ProfitAndLossProps {}
 
 impl Component for ProfitAndLossProps {
     type Message = ();
