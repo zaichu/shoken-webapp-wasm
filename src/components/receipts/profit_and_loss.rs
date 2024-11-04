@@ -5,21 +5,20 @@ use std::{cell::RefCell, collections::BTreeMap};
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{console, js_sys, File, HtmlInputElement};
-use yew::platform::spawn_local;
 use yew::prelude::*;
 
 use crate::components::receipts::common;
 use crate::setting::{HEADERS, TAX_RATE};
 
+type ProfitAndLossMap = RefCell<BTreeMap<NaiveDate, Vec<ProfitAndLossProps>>>;
 type FieldsMap = Vec<(&'static str, Option<String>)>;
 
-#[derive(PartialEq, Properties, Debug, Clone)]
 pub struct ProfitAndLoss {
     csv_file: Option<File>,
-    profit_and_loss_map: RefCell<BTreeMap<NaiveDate, Vec<ProfitAndLossProps>>>,
+    profit_and_loss_map: ProfitAndLossMap,
 }
 
-pub enum ProfitAndLossMsg {
+pub enum Msg {
     CSVFileSelect(Option<File>),
     SetProfitAndLossMap(Vec<u8>),
 }
@@ -28,15 +27,7 @@ impl ProfitAndLoss {
     fn render_file_input(&self, ctx: &Context<Self>) -> Html {
         let on_change = ctx.link().callback(|e: Event| {
             let input: HtmlInputElement = e.target_unchecked_into();
-            if let Some(files) = input.files() {
-                if let Some(file) = files.get(0) {
-                    ProfitAndLossMsg::CSVFileSelect(Some(file))
-                } else {
-                    ProfitAndLossMsg::CSVFileSelect(None)
-                }
-            } else {
-                ProfitAndLossMsg::CSVFileSelect(None)
-            }
+            Msg::CSVFileSelect(input.files().and_then(|files| files.get(0)))
         });
 
         let file_name = self
@@ -44,42 +35,42 @@ impl ProfitAndLoss {
             .as_ref()
             .map(|file| file.name())
             .unwrap_or_else(|| "CSVファイルを選択してください。".to_string());
+
         html! {
-        <>
-        <div class="input-group">
+            <div class="input-group">
                 <label class="input-group-btn" for="csv-file-input">
-                    <span class="btn btn-primary">
-                        { "CSVファイル選択" }
-                    </span>
+                    <span class="btn btn-primary">{ "CSVファイル選択" }</span>
                 </label>
                 <input id="csv-file-input" type="file" accept=".csv" style="display:none" onchange={on_change} />
                 <input type="text" class="form-control" readonly=true value={file_name} />
             </div>
-        </>
         }
     }
 
     fn render_profit_and_loss_list(&self) -> Html {
         let headers = ProfitAndLossProps::new().get_all_fields();
-
         html! {
-        <>
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">{ "実益損益" }</h5>
                 </div>
-                if let Some(_) = &self.csv_file {
-                    <div class="table-responsive" style="max-height: 500px;">
-                        <table class="table table-bordered">
-                            { self.render_table_header(&headers) }
-                            <tbody>
-                                { self.render_table_body() }
-                            </tbody>
-                        </table>
-                    </div>
+                if self.csv_file.is_some(){
+                    { self.render_table(&headers) }
                 }
             </div>
-        </>
+        }
+    }
+
+    fn render_table(&self, headers: &FieldsMap) -> Html {
+        html! {
+            <div class="table-responsive" style="max-height: 500px;">
+                <table class="table table-bordered">
+                    { self.render_table_header(headers) }
+                    <tbody>
+                        { self.render_table_body() }
+                    </tbody>
+                </table>
+            </div>
         }
     }
 
@@ -105,7 +96,6 @@ impl ProfitAndLoss {
             { for self.profit_and_loss_map.borrow().iter().map(|(_, profit_and_loss_list)| {
                 let totals = self.calculate_totals(profit_and_loss_list);
                 let profit_and_loss_total = ProfitAndLossProps::new_total_realized_profit_and_loss(totals);
-
                 html! {
                     <>
                         { for profit_and_loss_list.iter().map(|profit_and_loss| {
@@ -119,23 +109,22 @@ impl ProfitAndLoss {
     }
 
     fn calculate_totals(&self, profit_and_loss_list: &[ProfitAndLossProps]) -> (i32, i32) {
-        let mut specific_account_total = 0;
-        let mut nisa_account_total = 0;
-
-        for profit_and_loss in profit_and_loss_list {
-            if let (Some(account), Some(realized_profit_and_loss)) = (
-                profit_and_loss.account.as_deref(),
-                profit_and_loss.realized_profit_and_loss,
-            ) {
-                if account.contains("特定") {
-                    specific_account_total += realized_profit_and_loss;
+        profit_and_loss_list
+            .iter()
+            .fold((0, 0), |(specific, nisa), profit_and_loss| {
+                if let (Some(account), Some(realized_profit_and_loss)) = (
+                    profit_and_loss.account.as_deref(),
+                    profit_and_loss.realized_profit_and_loss,
+                ) {
+                    if account.contains("特定") {
+                        (specific + realized_profit_and_loss, nisa)
+                    } else {
+                        (specific, nisa + realized_profit_and_loss)
+                    }
                 } else {
-                    nisa_account_total += realized_profit_and_loss;
+                    (specific, nisa)
                 }
-            }
-        }
-
-        (specific_account_total, nisa_account_total)
+            })
     }
 
     async fn read_file(file: &File) -> Result<Vec<u8>> {
@@ -163,11 +152,11 @@ impl ProfitAndLoss {
 }
 
 impl Component for ProfitAndLoss {
-    type Message = ProfitAndLossMsg;
+    type Message = Msg;
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
-        ProfitAndLoss {
+        Self {
             csv_file: None,
             profit_and_loss_map: RefCell::new(BTreeMap::new()),
         }
@@ -175,43 +164,42 @@ impl Component for ProfitAndLoss {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            ProfitAndLossMsg::CSVFileSelect(file) => {
+            Msg::CSVFileSelect(file) => {
                 self.csv_file = file.clone();
                 let link = ctx.link().clone();
-                spawn_local(async move {
+                wasm_bindgen_futures::spawn_local(async move {
                     if let Some(file) = file {
-                        let content = Self::read_file(&file).await;
-                        match content {
-                            Ok(content) => {
-                                link.send_message(ProfitAndLossMsg::SetProfitAndLossMap(content));
-                            }
-                            Err(err) => {
-                                console::log_1(&JsValue::from_str(&format!("{:?}", err)));
-                            }
-                        };
+                        match Self::read_file(&file).await {
+                            Ok(content) => link.send_message(Msg::SetProfitAndLossMap(content)),
+                            Err(err) => console::log_1(&JsValue::from_str(&format!(
+                                "File read error: {:?}",
+                                err
+                            ))),
+                        }
                     }
                 });
+                true
             }
-            ProfitAndLossMsg::SetProfitAndLossMap(content) => {
-                let result = self.process_csv_content(content);
-                if result.is_err() {
-                    let err = result.err();
-                    console::log_1(&JsValue::from_str(&format!("{:?}", err)));
+            Msg::SetProfitAndLossMap(content) => {
+                if let Err(err) = self.process_csv_content(content) {
+                    console::log_1(&JsValue::from_str(&format!(
+                        "CSV processing error: {:?}",
+                        err
+                    )));
                 }
+                true
             }
         }
-        true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
-        <>
-        { self.render_file_input(ctx) }
-
-        <div class="mt-4">
-            { self.render_profit_and_loss_list() }
-        </div>
-        </>
+            <>
+                { self.render_file_input(ctx) }
+                <div class="mt-4">
+                    { self.render_profit_and_loss_list() }
+                </div>
+            </>
         }
     }
 }
