@@ -24,9 +24,8 @@ pub fn Receipts() -> Html {
 
     html! {
         <Layout>
-            <h2 class="mb-4 text-center">{ "受取金" }</h2>
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                <div class="container">
+                <div class="container" style="max-width: 1600px;">
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav">
                             <li class="nav-item">

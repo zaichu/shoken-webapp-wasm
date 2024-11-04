@@ -62,26 +62,36 @@ impl ProfitAndLoss {
 
         html! {
         <>
-        <div class="card">
-            <div class="card-header">{ "実益損益" }</div>
-            <table class="table table-bordered table-sm table-responsive">
-                { self.render_table_header(&headers) }
-                <tbody>
-                    { self.render_table_body() }
-                </tbody>
-            </table>
-        </div>
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">{ "実益損益" }</h5>
+                </div>
+                if let Some(_) = &self.csv_file {
+                    <div class="table-responsive" style="max-height: 500px;">
+                        <table class="table table-striped table-bordered" style="table-layout: auto; width: 100%;">
+                            { self.render_table_header(&headers) }
+                            <tbody>
+                                { self.render_table_body() }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
         </>
         }
     }
 
     fn render_table_header(&self, headers: &[(String, Option<String>)]) -> Html {
         html! {
-            <thead>
-                <tr >
+            <thead class="thead-light">
+                <tr>
                     { for headers.iter().map(|(header, _)| {
                         let header_text = HEADERS.get(header.as_str()).unwrap_or(header);
-                        html! { <th>{ header_text }</th> }
+                        html! {
+                            <th scope="col" style="position: sticky; top: 0; background-color: white; white-space: nowrap; text-align: center;">
+                                { header_text }
+                            </th>
+                        }
                     }) }
                 </tr>
             </thead>
@@ -196,9 +206,7 @@ impl Component for ProfitAndLoss {
         { self.render_file_input(ctx) }
 
         <div class="mt-4">
-            if let Some(_) = &self.csv_file {
-                { self.render_profit_and_loss_list() }
-            }
+            { self.render_profit_and_loss_list() }
         </div>
         </>
         }
@@ -340,7 +348,21 @@ impl Component for ProfitAndLossProps {
         html! {
         <>
         <tr>
-            { for self.get_all_fields().iter().map(|(_, value)| html! {<td>{value.as_deref().unwrap_or("")}</td>}) }
+            { for self.get_all_fields().iter().map(|(key, value)| {
+                let value = value.as_deref().unwrap_or("");
+                let value = common::format_value(key, value);
+                let style = "overflow-wrap: break-word; white-space: normal;";
+                let mut class = "text-nowrap".to_string();
+                if value.starts_with("-") {
+                     class = format!("{} text-danger", class);
+                }
+
+                html! {
+                    <td class={class} style={style}>
+                        {value}
+                    </td>
+                }})
+            }
         </tr>
         </>
         }

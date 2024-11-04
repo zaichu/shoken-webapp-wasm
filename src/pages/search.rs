@@ -50,7 +50,6 @@ pub fn Search() -> Html {
 
     html! {
         <Layout>
-            <h2 class="mb-4 text-center">{ "銘柄検索" }</h2>
             <div class="mb-3">
                 <input
                     type="text"

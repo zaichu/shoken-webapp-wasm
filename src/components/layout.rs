@@ -8,7 +8,7 @@ pub fn layout(props: &yew::html::ChildrenProps) -> Html {
     html! {
         <>
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                <div class="container">
+                <div class="container" style="max-width: 1600px;">
                     <Link<Route> classes="navbar-brand" to={Route::Home}>{ "証券Web" }</Link<Route>>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
@@ -25,7 +25,7 @@ pub fn layout(props: &yew::html::ChildrenProps) -> Html {
                     </div>
                 </div>
             </nav>
-            <main class="container mt-4">
+            <main class="container mt-4" style="max-width: 1600px;">
                 { for props.children.iter() }
             </main>
             <footer class="bg-light text-center text-lg-start mt-4">
