@@ -1,12 +1,15 @@
+use anyhow::Result;
 use chrono::NaiveDate;
 use csv::StringRecord;
 use std::{cell::RefCell, collections::BTreeMap};
 use wasm_bindgen::JsValue;
-use web_sys::{console, File, HtmlInputElement};
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{console, js_sys, File, HtmlInputElement};
+use yew::platform::spawn_local;
 use yew::prelude::*;
 
 use crate::components::receipts::common;
-use crate::setting::TAX_RATE;
+use crate::setting::{HEADERS, TAX_RATE};
 
 #[derive(PartialEq, Properties, Debug, Clone)]
 pub struct ProfitAndLoss {
@@ -16,29 +19,11 @@ pub struct ProfitAndLoss {
 
 pub enum ProfitAndLossMsg {
     CSVFileSelect(Option<File>),
+    SetprofitAndLossMap(Vec<u8>),
 }
 
-impl Component for ProfitAndLoss {
-    type Message = ProfitAndLossMsg;
-    type Properties = ();
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        ProfitAndLoss {
-            csv_file: None,
-            profit_and_loss_map: RefCell::new(BTreeMap::new()),
-        }
-    }
-
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            ProfitAndLossMsg::CSVFileSelect(file) => {
-                self.csv_file = file;
-            }
-        }
-        true
-    }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
+impl ProfitAndLoss {
+    fn render_file_input(&self, ctx: &Context<Self>) -> Html {
         let on_change = ctx.link().callback(|e: Event| {
             let input: HtmlInputElement = e.target_unchecked_into();
             if let Some(files) = input.files() {
@@ -57,10 +42,9 @@ impl Component for ProfitAndLoss {
             .as_ref()
             .map(|file| file.name())
             .unwrap_or_else(|| "CSVファイルを選択してください。".to_string());
-
         html! {
         <>
-            <div class="input-group">
+        <div class="input-group">
                 <label class="input-group-btn" for="csv-file-input">
                     <span class="btn btn-primary">
                         { "CSVファイル選択" }
@@ -69,17 +53,153 @@ impl Component for ProfitAndLoss {
                 <input id="csv-file-input" type="file" accept=".csv" style="display:none" onchange={on_change} />
                 <input type="text" class="form-control" readonly=true value={file_name} />
             </div>
+        </>
+        }
+    }
 
-            { for self.profit_and_loss_map.borrow().iter().map(|(date, props_list)| {
+    fn render_profit_and_loss_list(&self) -> Html {
+        let headers = ProfitAndLossProps::new().get_all_fields();
+
+        html! {
+        <>
+        <div class="card">
+            <div class="card-header">{ "実益損益" }</div>
+            <table class="table table-bordered table-sm table-responsive">
+                { self.render_table_header(&headers) }
+                <tbody>
+                    { self.render_table_body() }
+                </tbody>
+            </table>
+        </div>
+        </>
+        }
+    }
+
+    fn render_table_header(&self, headers: &[(String, Option<String>)]) -> Html {
+        html! {
+            <thead>
+                <tr >
+                    { for headers.iter().map(|(header, _)| {
+                        let header_text = HEADERS.get(header.as_str()).unwrap_or(header);
+                        html! { <th>{ header_text }</th> }
+                    }) }
+                </tr>
+            </thead>
+        }
+    }
+
+    fn render_table_body(&self) -> Html {
+        html! {
+            { for self.profit_and_loss_map.borrow().iter().map(|(_, profit_and_loss_list)| {
+                let totals = self.calculate_totals(profit_and_loss_list);
+                let profit_and_loss_total = ProfitAndLossProps::new_total_realized_profit_and_loss(totals);
+
                 html! {
-                    <div key={date.to_string()}>
-                        <h2>{ date.format("%Y-%m-%d").to_string() }</h2>
-                        { for props_list.iter().map(|props| html! {
-                            <ProfitAndLossProps ..props.clone() />
+                    <>
+                        { for profit_and_loss_list.iter().map(|profit_and_loss| {
+                            html! { <ProfitAndLossProps ..profit_and_loss.clone() /> }
                         }) }
-                    </div>
+                        <ProfitAndLossProps ..profit_and_loss_total />
+                    </>
                 }
             }) }
+        }
+    }
+
+    fn calculate_totals(&self, profit_and_loss_list: &[ProfitAndLossProps]) -> (i32, i32) {
+        let mut specific_account_total = 0;
+        let mut nisa_account_total = 0;
+
+        for profit_and_loss in profit_and_loss_list {
+            if let (Some(account), Some(realized_profit_and_loss)) = (
+                profit_and_loss.account.as_deref(),
+                profit_and_loss.realized_profit_and_loss,
+            ) {
+                if account.contains("特定") {
+                    specific_account_total += realized_profit_and_loss;
+                } else {
+                    nisa_account_total += realized_profit_and_loss;
+                }
+            }
+        }
+
+        (specific_account_total, nisa_account_total)
+    }
+
+    async fn read_file(file: &File) -> Result<Vec<u8>> {
+        let array_buffer = JsFuture::from(file.array_buffer())
+            .await
+            .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+        Ok(js_sys::Uint8Array::new(&array_buffer).to_vec())
+    }
+
+    fn process_csv_content(&self, content: Vec<u8>) -> Result<()> {
+        let records = common::read_csv(content)?;
+        for record in records {
+            let profit_and_loss = ProfitAndLossProps::from_record(record);
+            if let Some(trade_date) = profit_and_loss.trade_date {
+                self.profit_and_loss_map
+                    .borrow_mut()
+                    .entry(trade_date)
+                    .or_insert_with(Vec::new)
+                    .push(profit_and_loss);
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Component for ProfitAndLoss {
+    type Message = ProfitAndLossMsg;
+    type Properties = ();
+
+    fn create(_ctx: &Context<Self>) -> Self {
+        ProfitAndLoss {
+            csv_file: None,
+            profit_and_loss_map: RefCell::new(BTreeMap::new()),
+        }
+    }
+
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            ProfitAndLossMsg::CSVFileSelect(file) => {
+                self.csv_file = file.clone();
+                let link = ctx.link().clone();
+                spawn_local(async move {
+                    if let Some(file) = file {
+                        let content = Self::read_file(&file).await;
+                        match content {
+                            Ok(content) => {
+                                link.send_message(ProfitAndLossMsg::SetprofitAndLossMap(content));
+                            }
+                            Err(err) => {
+                                console::log_1(&JsValue::from_str(&format!("{:?}", err)));
+                            }
+                        };
+                    }
+                });
+            }
+            ProfitAndLossMsg::SetprofitAndLossMap(content) => {
+                let result = self.process_csv_content(content);
+                if result.is_err() {
+                    let err = result.err();
+                    console::log_1(&JsValue::from_str(&format!("{:?}", err)));
+                }
+            }
+        }
+        true
+    }
+
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        html! {
+        <>
+        { self.render_file_input(ctx) }
+
+        <div class="mt-4">
+            if let Some(_) = &self.csv_file {
+                { self.render_profit_and_loss_list() }
+            }
+        </div>
         </>
         }
     }
@@ -103,7 +223,24 @@ pub struct ProfitAndLossProps {
 }
 
 impl ProfitAndLossProps {
-    pub fn from_record(&self, record: StringRecord) -> Self {
+    pub fn new() -> Self {
+        ProfitAndLossProps {
+            trade_date: None,
+            settlement_date: None,
+            security_code: None,
+            security_name: None,
+            account: None,
+            shares: None,
+            asked_price: None,
+            proceeds: None,
+            purchase_price: None,
+            realized_profit_and_loss: None,
+            total_realized_profit_and_loss: None,
+            withholding_tax: None,
+            profit_and_loss: None,
+        }
+    }
+    pub fn from_record(record: StringRecord) -> Self {
         ProfitAndLossProps {
             trade_date: common::parse_date(record.get(0)),
             settlement_date: common::parse_date(record.get(1)),
@@ -200,6 +337,12 @@ impl Component for ProfitAndLossProps {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        html! {}
+        html! {
+        <>
+        <tr>
+            { for self.get_all_fields().iter().map(|(_, value)| html! {<td>{value.as_deref().unwrap_or("")}</td>}) }
+        </tr>
+        </>
+        }
     }
 }
