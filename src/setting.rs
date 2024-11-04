@@ -1,55 +1,40 @@
 use lazy_static::lazy_static;
 use std::collections::{HashMap, HashSet};
 
-type HeaderMap = HashMap<String, String>;
+type HeaderMap = HashMap<&'static str, &'static str>;
+type URLMap = Vec<(&'static str, &'static str, &'static str)>;
 
 lazy_static! {
     pub static ref HEADERS: HeaderMap = {
-        let mut map = HashMap::new();
-        map.insert("trade_date".to_string(), "約定日".to_string());
-        map.insert("settlement_date".to_string(), "受渡日".to_string());
-        map.insert("security_code".to_string(), "銘柄コード".to_string());
-        map.insert("security_name".to_string(), "銘柄名".to_string());
-        map.insert("account".to_string(), "口座".to_string());
-        map.insert("shares".to_string(), "数量[株]".to_string());
-        map.insert("asked_price".to_string(), "売却/決済単価".to_string());
-        map.insert("proceeds".to_string(), "売却/決済額".to_string());
-        map.insert("purchase_price".to_string(), "平均取得価額".to_string());
-        map.insert(
-            "realized_profit_and_loss".to_string(),
-            "実現損益".to_string(),
-        );
-        map.insert(
-            "total_realized_profit_and_loss".to_string(),
-            "合計実現損益".to_string(),
-        );
-        map.insert("withholding_tax".to_string(), "源泉徴収税額".to_string());
-        map.insert("profit_and_loss".to_string(), "損益".to_string());
-        map.insert("product".to_string(), "商品".to_string());
-        map.insert("currency".to_string(), "受取通貨".to_string());
-        map.insert("unit_price".to_string(), "単価".to_string());
-        map.insert(
-            "dividends_before_tax".to_string(),
-            "配当・分配金(税引前)".to_string(),
-        );
-        map.insert("taxes".to_string(), "税額".to_string());
-        map.insert("net_amount_received".to_string(), "受取金額".to_string());
-        map.insert(
-            "total_dividends_before_tax".to_string(),
-            "配当・分配金合計(税引前)".to_string(),
-        );
-        map.insert("total_taxes".to_string(), "税額合計".to_string());
-        map.insert(
-            "total_net_amount_received".to_string(),
-            "受取金額".to_string(),
-        );
-        map
-    };
+    let mut map = HashMap::new();
+    map.insert("trade_date", "約定日");
+    map.insert("settlement_date", "受渡日");
+    map.insert("security_code", "銘柄コード");
+    map.insert("security_name", "銘柄名");
+    map.insert("account", "口座");
+    map.insert("shares", "数量[株]");
+    map.insert("asked_price", "売却/決済単価");
+    map.insert("proceeds", "売却/決済額");
+    map.insert("purchase_price", "平均取得価額");
+    map.insert("realized_profit_and_loss", "実現損益");
+    map.insert("total_realized_profit_and_loss", "合計実現損益");
+    map.insert("withholding_tax", "源泉徴収税額");
+    map.insert("profit_and_loss", "損益");
+    map.insert("product", "商品");
+    map.insert("currency", "受取通貨");
+    map.insert("unit_price", "単価");
+    map.insert("dividends_before_tax", "配当・分配金(税引前)");
+    map.insert("taxes", "税額");
+    map.insert("net_amount_received", "受取金額");
+    map.insert("total_dividends_before_tax", "配当・分配金合計(税引前)");
+    map.insert("total_taxes", "税額合計");
+    map.insert("total_net_amount_received", "受取金額");
+    map
+};
 
     pub static ref NUMBER_FORMAT_KEYS: HashSet<&'static str> = [
         "shares",                         // 数量
     ].iter().cloned().collect();
-
 
     pub static ref YEN_FORMAT_KEYS: HashSet<&'static str> = [
         "asked_price",                    // 売却/決済単価
@@ -71,7 +56,20 @@ lazy_static! {
         "settlement_date",                // 受取金
         "trade_date",                     // 約定日
     ].iter().cloned().collect();
+
+    pub static ref STOCK_INFO_LINKS: URLMap = vec![
+        ("かぶたん", KABUTAN_URL, "btn-primary"),
+        ("Yahoo! Finance", YAHOO_URL, "btn-secondary"),
+        ("日経", NIKKEI_URL, "btn-success"),
+        ("バフェットコード", BUFFETT_CODE_URL, "btn-warning"),
+        ("みんかぶ", MINKABU_URL, "btn-info"),
+    ];
 }
 
-// tax_rateの定義
 pub const TAX_RATE: f64 = 0.20315;
+
+pub const MINKABU_URL: &'static str = "https://minkabu.jp/stock/{}/";
+pub const KABUTAN_URL: &'static str = "https://kabutan.jp/stock/?code={}";
+pub const YAHOO_URL: &'static str = "https://finance.yahoo.co.jp/quote/{}";
+pub const NIKKEI_URL: &'static str = "https://www.nikkei.com/nkd/company/?scode={}";
+pub const BUFFETT_CODE_URL: &'static str = "https://www.buffett-code.com/company/{}";

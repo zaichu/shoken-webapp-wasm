@@ -11,6 +11,8 @@ use yew::prelude::*;
 use crate::components::receipts::common;
 use crate::setting::{HEADERS, TAX_RATE};
 
+type FieldsMap = Vec<(&'static str, Option<String>)>;
+
 #[derive(PartialEq, Properties, Debug, Clone)]
 pub struct ProfitAndLoss {
     csv_file: Option<File>,
@@ -81,12 +83,12 @@ impl ProfitAndLoss {
         }
     }
 
-    fn render_table_header(&self, headers: &[(String, Option<String>)]) -> Html {
+    fn render_table_header(&self, headers: &FieldsMap) -> Html {
         html! {
             <thead class="thead-light">
                 <tr>
                     { for headers.iter().map(|(header, _)| {
-                        let header_text = HEADERS.get(header.as_str()).unwrap_or(header);
+                        let header_text = HEADERS.get(header).unwrap_or(header);
                         html! {
                             <th scope="col" style="position: sticky; top: 0; background-color: white; white-space: nowrap; text-align: center;">
                                 { header_text }
@@ -270,43 +272,34 @@ impl ProfitAndLossProps {
         }
     }
 
-    pub fn get_all_fields(&self) -> Vec<(String, Option<String>)> {
+    pub fn get_all_fields(&self) -> FieldsMap {
         vec![
+            ("trade_date", self.trade_date.map(|d| d.to_string())),
             (
-                "trade_date".to_string(),
-                self.trade_date.map(|d| d.to_string()),
-            ),
-            (
-                "settlement_date".to_string(),
+                "settlement_date",
                 self.settlement_date.map(|d| d.to_string()),
             ),
-            ("security_code".to_string(), self.security_code.clone()),
-            ("security_name".to_string(), self.security_name.clone()),
-            ("account".to_string(), self.account.clone()),
-            ("shares".to_string(), self.shares.map(|s| s.to_string())),
+            ("security_code", self.security_code.clone()),
+            ("security_name", self.security_name.clone()),
+            ("account", self.account.clone()),
+            ("shares", self.shares.map(|s| s.to_string())),
+            ("asked_price", self.asked_price.map(|p| p.to_string())),
+            ("proceeds", self.proceeds.map(|p| p.to_string())),
+            ("purchase_price", self.purchase_price.map(|p| p.to_string())),
             (
-                "asked_price".to_string(),
-                self.asked_price.map(|p| p.to_string()),
-            ),
-            ("proceeds".to_string(), self.proceeds.map(|p| p.to_string())),
-            (
-                "purchase_price".to_string(),
-                self.purchase_price.map(|p| p.to_string()),
-            ),
-            (
-                "realized_profit_and_loss".to_string(),
+                "realized_profit_and_loss",
                 self.realized_profit_and_loss.map(|p| p.to_string()),
             ),
             (
-                "total_realized_profit_and_loss".to_string(),
+                "total_realized_profit_and_loss",
                 self.total_realized_profit_and_loss.map(|p| p.to_string()),
             ),
             (
-                "withholding_tax".to_string(),
+                "withholding_tax",
                 self.withholding_tax.map(|p| p.to_string()),
             ),
             (
-                "profit_and_loss".to_string(),
+                "profit_and_loss",
                 self.profit_and_loss.map(|p| p.to_string()),
             ),
         ]

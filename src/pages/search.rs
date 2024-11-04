@@ -5,7 +5,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::{console, HtmlInputElement};
 use yew::prelude::*;
 
-use crate::components::Layout;
+use crate::{components::Layout, setting::STOCK_INFO_LINKS};
 
 #[derive(Clone, PartialEq, Deserialize, Serialize, Default)]
 struct Stock {
@@ -113,33 +113,9 @@ fn render_table_row(label: &str, value: &str) -> Html {
 }
 
 fn render_link(stock: &UseStateHandle<Stock>) -> Html {
-    let links = vec![
-        (
-            "かぶたん",
-            "https://kabutan.jp/stock/?code={}",
-            "btn-primary",
-        ),
-        (
-            "Yahoo! Finance",
-            "https://finance.yahoo.co.jp/quote/{}",
-            "btn-secondary",
-        ),
-        (
-            "日経",
-            "https://www.nikkei.com/nkd/company/?scode={}",
-            "btn-success",
-        ),
-        (
-            "バフェットコード",
-            "https://www.buffett-code.com/company/{}",
-            "btn-warning",
-        ),
-        ("みんかぶ", "https://minkabu.jp/stock/{}/", "btn-info"),
-    ];
-
     html! {
         <div class="mt-3">
-            { for links.iter().map(|(text, href, class)| render_link_button(text, href, class, &stock.code)) }
+            { for STOCK_INFO_LINKS.iter().map(|(text, href, class)| render_link_button(text, href, class, &stock.code)) }
         </div>
     }
 }
