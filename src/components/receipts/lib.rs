@@ -147,7 +147,7 @@ async fn read_file(file: &File) -> Result<Vec<u8>> {
     Ok(js_sys::Uint8Array::new(&array_buffer).to_vec())
 }
 
-#[derive(PartialEq, Properties, Debug, Clone)]
+#[derive(PartialEq, Properties, Debug, Clone, Eq)]
 pub struct BaseReceiptProps {
     pub tr_class: String,
 }
