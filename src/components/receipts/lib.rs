@@ -111,16 +111,21 @@ fn process_csv_content<T: ReceiptProps + 'static>(
     content: Vec<u8>,
 ) -> Result<()> {
     let records = self::read_csv(content)?;
-
-    item_map.set(BTreeMap::new());
-    let mut item_map_tmp = BTreeMap::new();
-    for record in records {
-        let item = T::from_string_record(record);
-        if let Some(date) = item.get_date() {
-            item_map_tmp.entry(date).or_insert_with(Vec::new).push(item);
-        }
-    }
-    item_map.set(item_map_tmp);
+    item_map.set(
+        records
+            .into_iter()
+            .filter_map(|record| {
+                let item = T::from_string_record(record);
+                item.get_date().map(|date| (date, item))
+            })
+            .fold(
+                BTreeMap::new(),
+                |mut acc: BTreeMap<NaiveDate, Vec<T>>, (date, item)| {
+                    acc.entry(date).or_default().push(item);
+                    acc
+                },
+            ),
+    );
 
     Ok(())
 }
