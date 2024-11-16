@@ -1,18 +1,11 @@
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 use csv::StringRecord;
 use yew::prelude::*;
 
-use super::lib::{BaseReceiptProps, ReceiptProps, ReceiptTemplate};
+use super::lib::{BaseReceiptProps, ReceiptProps};
 
-#[function_component]
-pub fn DividendList() -> Html {
-    html! {
-        <ReceiptTemplate::<DividendListProps> name={"配当金"}/>
-    }
-}
-
-#[derive(PartialEq, Properties, Debug, Clone)]
-pub struct DividendListProps {
+#[derive(PartialEq, Properties, Debug, Clone, Eq)]
+pub struct DividendList {
     pub base: BaseReceiptProps,
     pub settlement_date: Option<NaiveDate>, // 入金日(受渡日)
     pub product: Option<String>,            // 商品
@@ -30,7 +23,7 @@ pub struct DividendListProps {
     pub total_net_amount_received: Option<i32>, // 受取金額合計[円/現地通貨]
 }
 
-impl ReceiptProps for DividendListProps {
+impl ReceiptProps for DividendList {
     fn new() -> Self {
         Self {
             base: BaseReceiptProps::new(""),
@@ -86,7 +79,8 @@ impl ReceiptProps for DividendListProps {
     }
 
     fn get_date(&self) -> Option<NaiveDate> {
-        self.settlement_date
+        let date = self.settlement_date.unwrap();
+        NaiveDate::from_ymd_opt(date.year(), date.month(), 1)
     }
 
     fn get_profit_record(items: &[Self]) -> Self {
@@ -138,7 +132,7 @@ impl ReceiptProps for DividendListProps {
     }
 
     fn from_string_record(record: StringRecord) -> Self {
-        DividendListProps {
+        DividendList {
             base: BaseReceiptProps::new(""),
             settlement_date: Self::parse_date(record.get(0)),
             product: Self::parse_string(record.get(1)),

@@ -2,19 +2,12 @@ use chrono::NaiveDate;
 use csv::StringRecord;
 use yew::prelude::*;
 
-use crate::{components::receipts::lib::ReceiptTemplate, setting::TAX_RATE};
+use crate::setting::TAX_RATE;
 
 use super::lib::{BaseReceiptProps, ReceiptProps};
 
-#[function_component]
-pub fn ProfitAndLoss() -> Html {
-    html! {
-        <ReceiptTemplate::<ProfitAndLossProps> name={"実益損益"}/>
-    }
-}
-
 #[derive(PartialEq, Properties, Debug, Clone)]
-pub struct ProfitAndLossProps {
+pub struct ProfitAndLoss {
     pub base: BaseReceiptProps,
     pub trade_date: Option<NaiveDate>,               // 約定日
     pub settlement_date: Option<NaiveDate>,          // 受渡日
@@ -31,7 +24,7 @@ pub struct ProfitAndLossProps {
     pub profit_and_loss: Option<i32>,                // 損益
 }
 
-impl ReceiptProps for ProfitAndLossProps {
+impl ReceiptProps for ProfitAndLoss {
     fn new() -> Self {
         Self {
             base: BaseReceiptProps::new(""),

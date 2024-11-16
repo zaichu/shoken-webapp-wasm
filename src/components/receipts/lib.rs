@@ -90,7 +90,7 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
                                 for item_map.iter().map(|(_, items)| {
                                     html! {
                                     <>
-                                        { for items.iter().map(|item| item.view()) }
+                                        { for items.iter().rev().map(|item| item.view()) }
                                         { T::get_profit_record(items).view() }
                                     </>
                                     }
@@ -147,7 +147,7 @@ async fn read_file(file: &File) -> Result<Vec<u8>> {
     Ok(js_sys::Uint8Array::new(&array_buffer).to_vec())
 }
 
-#[derive(PartialEq, Properties, Debug, Clone)]
+#[derive(PartialEq, Properties, Debug, Clone, Eq)]
 pub struct BaseReceiptProps {
     pub tr_class: String,
 }

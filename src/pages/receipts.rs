@@ -1,7 +1,7 @@
 use yew::prelude::*;
 
 use crate::components::{
-    receipts::{dividend_list::DividendList, profit_and_loss::ProfitAndLoss},
+    receipts::{dividend_list::DividendList, lib::ReceiptTemplate, profit_and_loss::ProfitAndLoss},
     Layout,
 };
 
@@ -29,7 +29,7 @@ pub fn Receipts() -> Html {
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav">
                             <li class="nav-item">
-                                <button class="nav-link" onclick={on_click.clone().reform(|_| ReceiptsType::Dividend)}>{ "配当金" }</button>
+                                <button class="nav-link" onclick={on_click.reform(|_| ReceiptsType::Dividend)}>{ "配当金" }</button>
                             </li>
                             <li class="nav-item">
                                 <button class="nav-link" onclick={on_click.reform(|_| ReceiptsType::ProfitAndLoss)}>{ "実益損益" }</button>
@@ -39,9 +39,9 @@ pub fn Receipts() -> Html {
                 </div>
             </nav>
             <div class="mt-4">
-                { match (*selected_type).clone() {
-                    ReceiptsType::Dividend => html! { <DividendList /> } ,
-                    ReceiptsType::ProfitAndLoss => html! { <ProfitAndLoss /> },
+                { match *selected_type {
+                    ReceiptsType::Dividend =>      html! { <ReceiptTemplate::<DividendList>  name={ "配当金" }   /> } ,
+                    ReceiptsType::ProfitAndLoss => html! { <ReceiptTemplate::<ProfitAndLoss> name={ "実益損益" } /> },
                 }}
             </div>
         </Layout>
