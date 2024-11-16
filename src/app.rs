@@ -25,8 +25,8 @@ pub fn switch(routes: Route) -> Html {
     }
 }
 
-#[function_component(App)]
-pub fn app() -> Html {
+#[function_component]
+pub fn App() -> Html {
     use_effect(|| {
         if let Some(window) = web_sys::window() {
             let location = window.location();
