@@ -3,8 +3,8 @@ use yew_router::prelude::*;
 
 use crate::app::Route;
 
-#[function_component(Layout)]
-pub fn layout(props: &yew::html::ChildrenProps) -> Html {
+#[function_component]
+pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
     html! {
         <>
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
