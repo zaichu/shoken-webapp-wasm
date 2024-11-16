@@ -90,7 +90,7 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
                                 for item_map.iter().map(|(_, items)| {
                                     html! {
                                     <>
-                                        { for items.iter().map(|item| item.view()) }
+                                        { for items.iter().rev().map(|item| item.view()) }
                                         { T::get_profit_record(items).view() }
                                     </>
                                     }
