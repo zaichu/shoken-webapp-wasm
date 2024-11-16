@@ -1,3 +1,4 @@
+use strum::EnumMessage;
 use yew::prelude::*;
 
 use crate::components::{
@@ -5,9 +6,12 @@ use crate::components::{
     Layout,
 };
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq, Debug, EnumMessage)]
 pub enum ReceiptsType {
+    #[strum(message = "配当金")]
     Dividend,
+
+    #[strum(message = "実現損益")]
     ProfitAndLoss,
 }
 
@@ -22,6 +26,7 @@ pub fn Receipts() -> Html {
         })
     };
 
+    let name = selected_type.get_message().unwrap();
     html! {
         <Layout>
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
@@ -29,19 +34,19 @@ pub fn Receipts() -> Html {
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav">
                             <li class="nav-item">
-                                <button class="nav-link" onclick={on_click.reform(|_| ReceiptsType::Dividend)}>{ "配当金" }</button>
+                                <button class="nav-link" onclick={on_click.reform(|_| ReceiptsType::Dividend)}>{ ReceiptsType::Dividend.get_message() }</button>
                             </li>
                             <li class="nav-item">
-                                <button class="nav-link" onclick={on_click.reform(|_| ReceiptsType::ProfitAndLoss)}>{ "実益損益" }</button>
+                                <button class="nav-link" onclick={on_click.reform(|_| ReceiptsType::ProfitAndLoss)}>{ ReceiptsType::ProfitAndLoss.get_message() }</button>
                             </li>
                         </ul>
                     </div>
                 </div>
             </nav>
-            <div class="mt-4">
-                { match *selected_type {
-                    ReceiptsType::Dividend =>      html! { <ReceiptTemplate::<DividendList>  name={ "配当金" }   /> } ,
-                    ReceiptsType::ProfitAndLoss => html! { <ReceiptTemplate::<ProfitAndLoss> name={ "実益損益" } /> },
+            <div class="mt-4"> {
+                match *selected_type {
+                    ReceiptsType::Dividend =>      html! { <ReceiptTemplate::<DividendList>  name={ name } /> },
+                    ReceiptsType::ProfitAndLoss => html! { <ReceiptTemplate::<ProfitAndLoss> name={ name } /> },
                 }}
             </div>
         </Layout>
