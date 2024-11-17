@@ -1,3 +1,4 @@
+use crate::setting::{DATE_FORMAT_KEYS, HEADERS, NUMBER_FORMAT_KEYS, YEN_FORMAT_KEYS};
 use anyhow::{anyhow, Result};
 use chrono::NaiveDate;
 use csv::StringRecord;
@@ -8,8 +9,6 @@ use wasm_bindgen_futures::JsFuture;
 use web_sys::{console, js_sys, File, HtmlInputElement};
 use yew::prelude::*;
 
-use crate::setting::{DATE_FORMAT_KEYS, HEADERS, NUMBER_FORMAT_KEYS, YEN_FORMAT_KEYS};
-
 #[derive(Properties, PartialEq, Debug, Clone)]
 pub struct ReceiptTemplateProps {
     pub name: String,
@@ -17,18 +16,11 @@ pub struct ReceiptTemplateProps {
 
 #[function_component]
 pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) -> Html {
-    let item_map = use_state(|| BTreeMap::<NaiveDate, Vec<T>>::new());
+    let item_map = use_state(BTreeMap::<NaiveDate, Vec<T>>::new);
     let csv_file = use_state(|| None::<File>);
-    let file_name = use_state(|| format!("CSVファイルを選択してください。"));
+    let file_name = use_state(|| "CSVファイルを選択してください。".to_string());
 
-    let on_input = {
-        let csv_file = csv_file.clone();
-        Callback::from(move |e: InputEvent| {
-            let input: HtmlInputElement = e.target_unchecked_into();
-            let value = input.files().and_then(|files| files.get(0));
-            csv_file.set(value.clone());
-        })
-    };
+    let on_input = on_input_callback(csv_file.clone());
 
     {
         let item_map = item_map.clone();
@@ -41,18 +33,15 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
                     .map(|file| file.name())
                     .unwrap_or_else(|| "CSVファイルを選択してください。".to_string()),
             );
-            if let Some(file) = csv_file {
-                wasm_bindgen_futures::spawn_local(async move {
-                    let err_message = match self::read_file(&file).await {
-                        Ok(file) => match self::process_csv_content(item_map, file) {
-                            Ok(_) => format!(""),
-                            Err(err) => format!("CSV processing error: {:?}", err),
-                        },
-                        Err(err) => format!("File read error: {:?}", err),
-                    };
 
-                    if !err_message.is_empty() {
-                        console::log_1(&JsValue::from_str(&err_message));
+            if let Some(csv_file) = csv_file {
+                wasm_bindgen_futures::spawn_local(async move {
+                    let result = read_file(&csv_file)
+                        .await
+                        .and_then(|content| process_csv_content(item_map, content));
+
+                    if let Err(err) = result {
+                        console::log_1(&JsValue::from_str(&format!("Error: {:?}", err)));
                     }
                 });
             }
@@ -60,53 +49,61 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
     }
 
     html! {
-    <>
-        <div class="input-group">
-            <label class="input-group-btn" for="csv-file-input">
-                <span class="btn btn-primary">{ "CSVファイル選択" }</span>
-            </label>
-            <input id="csv-file-input" type="file" accept=".csv" style="display:none" oninput={on_input} />
-            <input type="text" class="form-control" readonly=true value={(*file_name).clone()} />
-        </div>
-        <div class="mt-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">{ props.name.clone() }</h5>
-                </div>
-                if csv_file.is_some(){
-                    <div class="table-responsive" style="max-height: 500px;">
-                        <table class="table table-bordered">
-                            <thead class="thead-light">
-                            <tr> {
-                                for T::new().get_all_fields().iter().map(|(header, _)| {
-                                    let header_text = HEADERS.get(header).unwrap_or(header);
-                                    html! {
-                                        <th scope="col" style="position: sticky; top: 0; background-color: white; white-space: nowrap; text-align: center;">
-                                            { header_text }
-                                        </th>
-                                    }
-                                })
-                            }
-                            </tr>
-                            </thead>
-                            <tbody> {
-                                for item_map.iter().map(|(_, items)| {
-                                    html! {
-                                    <>
-                                        { for items.iter().rev().map(|item| item.view()) }
-                                        { T::get_profit_record(items).view() }
-                                    </>
-                                    }
-                                })
-                            }
-                            </tbody>
-                        </table>
-                    </div>
-                }
+        <>
+            <div class="input-group">
+                <label class="input-group-btn" for="csv-file-input">
+                    <span class="btn btn-primary">{ "CSVファイル選択" }</span>
+                </label>
+                <input id="csv-file-input" type="file" accept=".csv" style="display:none" oninput={on_input} />
+                <input type="text" class="form-control" readonly=true value={(*file_name).clone()} />
             </div>
-        </div>
-    </>
+            <div class="mt-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">{ props.name.clone() }</h5>
+                    </div>
+                    if csv_file.is_some() {
+                        <div class="table-responsive" style="max-height: 500px;">
+                            <table class="table table-bordered">
+                                <thead class="thead-light">
+                                    <tr> {
+                                        for T::new().get_all_fields().iter().map(|(header, _)| {
+                                            let header_text = HEADERS.get(header).unwrap_or(header);
+                                            html! {
+                                                <th scope="col" style="position: sticky; top: 0; background-color: white; white-space: nowrap; text-align: center;">
+                                                    { header_text }
+                                                </th>
+                                            }
+                                        })
+                                    }
+                                    </tr>
+                                </thead>
+                                <tbody> {
+                                    for item_map.iter().map(|(_, items)| {
+                                        html! {
+                                        <>
+                                            { for items.iter().rev().map(|item| item.view()) }
+                                            { T::get_profit_record(items).view() }
+                                        </>
+                                        }
+                                    })
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </>
     }
+}
+
+fn on_input_callback(csv_file: UseStateHandle<Option<File>>) -> Callback<InputEvent> {
+    Callback::from(move |e: InputEvent| {
+        let input: HtmlInputElement = e.target_unchecked_into();
+        let value = input.files().and_then(|files| files.get(0));
+        csv_file.set(value.clone());
+    })
 }
 
 fn process_csv_content<T: ReceiptProps + 'static>(
@@ -129,7 +126,6 @@ fn process_csv_content<T: ReceiptProps + 'static>(
                 },
             ),
     );
-
     Ok(())
 }
 
@@ -142,7 +138,6 @@ fn read_csv(bytes: Vec<u8>) -> Result<Vec<StringRecord>> {
     let mut rdr = csv::ReaderBuilder::new()
         .has_headers(true)
         .from_reader(utf8_string.as_bytes());
-
     rdr.records()
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| anyhow!("Failed to read CSV: {}", e))
@@ -167,6 +162,7 @@ impl BaseReceiptProps {
         }
     }
 }
+
 pub trait ReceiptProps: Clone + Sized + PartialEq {
     fn new() -> Self;
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)>;
@@ -208,7 +204,6 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
             .chars()
             .rev()
             .collect::<String>();
-
         format!(
             "{}{}{}",
             sign,
@@ -221,7 +216,6 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
         if s.is_empty() {
             return "".to_string();
         }
-
         format!("¥ {}", Self::format_number(s))
     }
 
@@ -230,7 +224,6 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
             Some(date_str) => {
                 let date = NaiveDate::parse_from_str(&date_str, "%Y/%m/%d")
                     .map_err(|e| anyhow!("Failed to parse date '{}': {}", date_str, e));
-
                 match date {
                     Ok(date) => Some(date),
                     Err(e) => {
