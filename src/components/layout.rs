@@ -26,7 +26,7 @@ pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
                 </div>
             </nav>
             <main class="container mt-4" style="max-width: 1600px;">
-                { for props.children.iter() }
+                { props.children.clone() }
             </main>
             <footer class="bg-light text-center text-lg-start mt-4">
                 <div class="container p-1">
