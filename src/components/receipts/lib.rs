@@ -22,25 +22,28 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
     let file_name = use_state(|| format!("CSVファイルを選択してください。"));
 
     let on_input = {
-        let item_map = item_map.clone();
         let csv_file = csv_file.clone();
-        let file_name = file_name.clone();
-
         Callback::from(move |e: InputEvent| {
-            let item_map = item_map.clone();
             let input: HtmlInputElement = e.target_unchecked_into();
             let value = input.files().and_then(|files| files.get(0));
             csv_file.set(value.clone());
+        })
+    };
+
+    {
+        let item_map = item_map.clone();
+        let file_name = file_name.clone();
+        use_effect_with((*csv_file).clone(), move |csv_file| {
+            let csv_file = csv_file.clone();
             file_name.set(
                 csv_file
                     .as_ref()
                     .map(|file| file.name())
                     .unwrap_or_else(|| "CSVファイルを選択してください。".to_string()),
             );
-
-            wasm_bindgen_futures::spawn_local(async move {
-                if let Some(csv_file) = value {
-                    let err_message = match self::read_file(&csv_file).await {
+            if let Some(file) = csv_file {
+                wasm_bindgen_futures::spawn_local(async move {
+                    let err_message = match self::read_file(&file).await {
                         Ok(file) => match self::process_csv_content(item_map, file) {
                             Ok(_) => format!(""),
                             Err(err) => format!("CSV processing error: {:?}", err),
@@ -51,10 +54,10 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
                     if !err_message.is_empty() {
                         console::log_1(&JsValue::from_str(&err_message));
                     }
-                }
-            });
-        })
-    };
+                });
+            }
+        });
+    }
 
     html! {
     <>
