@@ -73,18 +73,22 @@ pub fn Search() -> Html {
                             { render_table_row("規模区分", &stock.size_category.clone().unwrap_or_default()) }
                         </tbody>
                     </table>
+                    <div class="d-flex flex-wrap">
+                        { for STOCK_INFO_LINKS.iter().enumerate().map(|(i, (text, href))| {
+                            html! {
+                                <div>
+                                    <a
+                                        href={href.replace("{}", &stock.code)}
+                                        target="_blank"
+                                    >
+                                        { text }
+                                    </a>
+                                    { if i < STOCK_INFO_LINKS.len() - 1 { html! { <span class="mx-2">{"|"} </span> } } else { html! {} } }
+                                </div>
+                            }
+                        })}
+                    </div>
                 </div>
-            </div>
-            <div class="mt-3">
-                { for STOCK_INFO_LINKS.iter().map(|(text, href, class)| {
-                    html! {
-                        <a href={href.replace("{}", &stock.code)}
-                           target="_blank"
-                           class={format!("btn {} me-2", class)}>
-                            { text }
-                        </a>
-                    }
-                })}
             </div>
         </Layout>
     }
@@ -108,7 +112,7 @@ async fn fetch_stock_data(value: &str) -> Result<Stock, String> {
 fn render_table_row(label: &str, value: &str) -> Html {
     html! {
         <tr>
-            <th scope="row" width="160px">{ label }</th>
+            <th scope="row" width="125px">{ label }</th>
             <td>{ value }</td>
         </tr>
     }

@@ -2,7 +2,6 @@ use lazy_static::lazy_static;
 use std::collections::{HashMap, HashSet};
 
 type HeaderMap = HashMap<&'static str, &'static str>;
-type URLMap = Vec<(&'static str, &'static str, &'static str)>;
 
 lazy_static! {
     pub static ref HEADERS: HeaderMap = {
@@ -57,12 +56,12 @@ lazy_static! {
         "trade_date",                     // 約定日
     ].iter().cloned().collect();
 
-    pub static ref STOCK_INFO_LINKS: URLMap = vec![
-        ("かぶたん", KABUTAN_URL, "btn-primary"),
-        ("Yahoo! Finance", YAHOO_URL, "btn-secondary"),
-        ("日経", NIKKEI_URL, "btn-success"),
-        ("バフェットコード", BUFFETT_CODE_URL, "btn-warning"),
-        ("みんかぶ", MINKABU_URL, "btn-info"),
+    pub static ref STOCK_INFO_LINKS: Vec<(&'static str, &'static str)> = vec![
+        ("株探", KABUTAN_URL),
+        ("Yahoo! Finance", YAHOO_URL),
+        ("日経", NIKKEI_URL),
+        ("バフェットコード", BUFFETT_CODE_URL),
+        ("みんかぶ", MINKABU_URL),
     ];
 }
 
