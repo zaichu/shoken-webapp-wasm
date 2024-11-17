@@ -57,11 +57,16 @@ lazy_static! {
     ].iter().cloned().collect();
 
     pub static ref STOCK_INFO_LINKS: Vec<(&'static str, &'static str)> = vec![
+        ("楽天証券", RAKUTEN_URL),
+        ("SBI証券", SBI_URL),
         ("株探", KABUTAN_URL),
         ("Yahoo! Finance", YAHOO_URL),
         ("日経", NIKKEI_URL),
         ("バフェットコード", BUFFETT_CODE_URL),
         ("みんかぶ", MINKABU_URL),
+        ("IR BANK", IR_BANK_URL),
+        ("銘柄スカウター", SCOUTER_URL),
+        ("ザイマニ", ZAIMANI_URL),
     ];
 }
 
@@ -72,3 +77,9 @@ pub const KABUTAN_URL: &'static str = "https://kabutan.jp/stock/?code={}";
 pub const YAHOO_URL: &'static str = "https://finance.yahoo.co.jp/quote/{}";
 pub const NIKKEI_URL: &'static str = "https://www.nikkei.com/nkd/company/?scode={}";
 pub const BUFFETT_CODE_URL: &'static str = "https://www.buffett-code.com/company/{}";
+pub const RAKUTEN_URL: &'static str =
+    "https://www.rakuten-sec.co.jp/web/market/search/quote.html?ric={}.T";
+pub const IR_BANK_URL: &'static str = "https://irbank.net/{}";
+pub const ZAIMANI_URL: &'static str = "https://zaimani.com/search/?_sf_s={}";
+pub const SCOUTER_URL: &'static str = "https://monex.ifis.co.jp/index.php?sa=report_index&bcode={}";
+pub const SBI_URL: &'static str = "https://site3.sbisec.co.jp/ETGate/?_ControlID=WPLETsiR001Control&_DataStoreID=DSWPLETsiR001Control&_PageID=WPLETsiR001Ilst10&_ActionID=getDetailOfStockPriceJP&s_rkbn=1&i_stock_sec=%94%43%93%56%93%B0&i_dom_flg=1&i_exchange_code=JPN&i_output_type=0&stock_sec_code_mul={}";

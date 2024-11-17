@@ -53,17 +53,19 @@ pub fn Search() -> Html {
             <div class="mb-3">
                 <input
                     type="text"
-                    class="form-control"
+                    class="form-control form-control-lg shadow-sm"
                     id="stockCode"
                     placeholder="銘柄名・銘柄コードを入力"
                     value={(*code_or_name).clone()}
                     oninput={on_input}
                 />
             </div>
-            <div class="card mt-4">
-                <div class="card-header bg-primary text-white">{ "検索結果" } </div>
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">{ "検索結果" }</h5>
+                </div>
                 <div class="card-body">
-                    <table class="table table-sm">
+                    <table class="table">
                         <tbody>
                             { render_table_row("銘柄名", &stock.name) }
                             { render_table_row("銘柄コード", &stock.code) }
@@ -76,15 +78,12 @@ pub fn Search() -> Html {
                     <div class="d-flex flex-wrap">
                         { for STOCK_INFO_LINKS.iter().enumerate().map(|(i, (text, href))| {
                             html! {
-                                <div>
-                                    <a
-                                        href={href.replace("{}", &stock.code)}
-                                        target="_blank"
-                                    >
+                                <>
+                                    <a href={href.replace("{}", &stock.code)} target="_blank" class="fw-bold">
                                         { text }
                                     </a>
                                     { if i < STOCK_INFO_LINKS.len() - 1 { html! { <span class="mx-2">{"|"} </span> } } else { html! {} } }
-                                </div>
+                                </>
                             }
                         })}
                     </div>
