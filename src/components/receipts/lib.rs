@@ -5,7 +5,7 @@ use csv::StringRecord;
 use encoding_rs::SHIFT_JIS;
 use std::collections::BTreeMap;
 use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::JsFuture;
+use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::{console, js_sys, File, HtmlInputElement};
 use yew::prelude::*;
 
@@ -35,7 +35,7 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
             );
 
             if let Some(csv_file) = csv_file {
-                wasm_bindgen_futures::spawn_local(async move {
+                spawn_local(async move {
                     let result = read_file(&csv_file)
                         .await
                         .and_then(|content| process_csv_content(item_map, content));

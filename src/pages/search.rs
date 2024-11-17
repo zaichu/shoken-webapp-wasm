@@ -60,8 +60,32 @@ pub fn Search() -> Html {
                     oninput={on_input}
                 />
             </div>
-            { render_stock_info(&stock) }
-            { render_link(&stock) }
+            <div class="card mt-4">
+                <div class="card-header bg-primary text-white">{ "検索結果" } </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            { render_table_row("銘柄名", &stock.name) }
+                            { render_table_row("銘柄コード", &stock.code) }
+                            { render_table_row("マーケットカテゴリ", &stock.market_category) }
+                            { render_table_row("33業種区分", &stock.industry_category_33.clone().unwrap_or_default()) }
+                            { render_table_row("17業種区分", &stock.industry_category_17.clone().unwrap_or_default()) }
+                            { render_table_row("規模区分", &stock.size_category.clone().unwrap_or_default()) }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="mt-3">
+                { for STOCK_INFO_LINKS.iter().map(|(text, href, class)| {
+                    html! {
+                        <a href={href.replace("{}", &stock.code)}
+                           target="_blank"
+                           class={format!("btn {} me-2", class)}>
+                            { text }
+                        </a>
+                    }
+                })}
+            </div>
         </Layout>
     }
 }
@@ -81,53 +105,11 @@ async fn fetch_stock_data(value: &str) -> Result<Stock, String> {
     }
 }
 
-fn render_stock_info(stock: &UseStateHandle<Stock>) -> Html {
-    html! {
-        <div class="card mt-4">
-            <div class="card-header bg-primary text-white">
-                { "検索結果" }
-            </div>
-            <div class="card-body">
-                <table class="table table-sm">
-                    <tbody>
-                        { render_table_row("銘柄名", &stock.name) }
-                        { render_table_row("銘柄コード", &stock.code) }
-                        { render_table_row("マーケットカテゴリ", &stock.market_category) }
-                        { render_table_row("33業種区分", &stock.industry_category_33.clone().unwrap_or_default()) }
-                        { render_table_row("17業種区分", &stock.industry_category_17.clone().unwrap_or_default()) }
-                        { render_table_row("規模区分", &stock.size_category.clone().unwrap_or_default()) }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    }
-}
-
 fn render_table_row(label: &str, value: &str) -> Html {
     html! {
         <tr>
             <th scope="row" width="160px">{ label }</th>
             <td>{ value }</td>
         </tr>
-    }
-}
-
-fn render_link(stock: &UseStateHandle<Stock>) -> Html {
-    html! {
-        <div class="mt-3">
-            { for STOCK_INFO_LINKS.iter().map(|(text, href, class)| render_link_button(text, href, class, &stock.code)) }
-        </div>
-    }
-}
-
-fn render_link_button(text: &str, href: &str, class: &str, code: &str) -> Html {
-    html! {
-        <a
-            href={href.replace("{}", code)}
-            target="_blank"
-            class={format!("btn {} me-2", class)}
-        >
-            { text }
-        </a>
     }
 }
