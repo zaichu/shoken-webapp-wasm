@@ -53,15 +53,42 @@ pub fn Search() -> Html {
             <div class="mb-3">
                 <input
                     type="text"
-                    class="form-control"
+                    class="form-control form-control-lg shadow-sm"
                     id="stockCode"
                     placeholder="銘柄名・銘柄コードを入力"
                     value={(*code_or_name).clone()}
                     oninput={on_input}
                 />
             </div>
-            { render_stock_info(&stock) }
-            { render_link(&stock) }
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">{ "検索結果" }</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tbody>
+                            { render_table_row("銘柄名", &stock.name) }
+                            { render_table_row("銘柄コード", &stock.code) }
+                            { render_table_row("マーケットカテゴリ", &stock.market_category) }
+                            { render_table_row("33業種区分", &stock.industry_category_33.clone().unwrap_or_default()) }
+                            { render_table_row("17業種区分", &stock.industry_category_17.clone().unwrap_or_default()) }
+                            { render_table_row("規模区分", &stock.size_category.clone().unwrap_or_default()) }
+                        </tbody>
+                    </table>
+                    <div class="d-flex flex-wrap">
+                        { for STOCK_INFO_LINKS.iter().enumerate().map(|(i, (text, href))| {
+                            html! {
+                                <>
+                                    <a href={href.replace("{}", &stock.code)} target="_blank" class="fw-bold">
+                                        { text }
+                                    </a>
+                                    { if i < STOCK_INFO_LINKS.len() - 1 { html! { <span class="mx-2">{"|"} </span> } } else { html! {} } }
+                                </>
+                            }
+                        })}
+                    </div>
+                </div>
+            </div>
         </Layout>
     }
 }
@@ -81,53 +108,11 @@ async fn fetch_stock_data(value: &str) -> Result<Stock, String> {
     }
 }
 
-fn render_stock_info(stock: &UseStateHandle<Stock>) -> Html {
-    html! {
-        <div class="card mt-4">
-            <div class="card-header bg-primary text-white">
-                { "検索結果" }
-            </div>
-            <div class="card-body">
-                <table class="table table-sm">
-                    <tbody>
-                        { render_table_row("銘柄名", &stock.name) }
-                        { render_table_row("銘柄コード", &stock.code) }
-                        { render_table_row("マーケットカテゴリ", &stock.market_category) }
-                        { render_table_row("33業種区分", &stock.industry_category_33.clone().unwrap_or_default()) }
-                        { render_table_row("17業種区分", &stock.industry_category_17.clone().unwrap_or_default()) }
-                        { render_table_row("規模区分", &stock.size_category.clone().unwrap_or_default()) }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    }
-}
-
 fn render_table_row(label: &str, value: &str) -> Html {
     html! {
         <tr>
-            <th scope="row" width="160px">{ label }</th>
+            <th scope="row" width="125px">{ label }</th>
             <td>{ value }</td>
         </tr>
-    }
-}
-
-fn render_link(stock: &UseStateHandle<Stock>) -> Html {
-    html! {
-        <div class="mt-3">
-            { for STOCK_INFO_LINKS.iter().map(|(text, href, class)| render_link_button(text, href, class, &stock.code)) }
-        </div>
-    }
-}
-
-fn render_link_button(text: &str, href: &str, class: &str, code: &str) -> Html {
-    html! {
-        <a
-            href={href.replace("{}", code)}
-            target="_blank"
-            class={format!("btn {} me-2", class)}
-        >
-            { text }
-        </a>
     }
 }

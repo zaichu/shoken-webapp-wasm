@@ -9,8 +9,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # Yew関連
-yew = { version = "0.20", features = ["csr"] }
-yew-router = "0.17"
+yew = { version = "0.21", features = ["csr"] }
+yew-router = "0.18"
 yew-hooks = "0.3.2"
 
 # WebAssembly関連
