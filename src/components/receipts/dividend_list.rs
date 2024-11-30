@@ -2,31 +2,29 @@ use chrono::{Datelike, NaiveDate};
 use csv::StringRecord;
 use yew::prelude::*;
 
-use super::lib::{BaseReceiptProps, ReceiptProps};
+use super::lib::ReceiptProps;
 
-#[derive(PartialEq, Properties, Debug, Clone, Eq)]
+#[derive(PartialEq, Properties, Debug, Clone)]
 pub struct DividendList {
-    pub base: BaseReceiptProps,
-    pub settlement_date: Option<NaiveDate>, // 入金日(受渡日)
-    pub product: Option<String>,            // 商品
-    pub account: Option<String>,            // 口座
-    pub security_code: Option<String>,      // 銘柄コード
-    pub security_name: Option<String>,      // 銘柄
-    pub currency: Option<String>,           // 受取通貨
-    pub unit_price: Option<String>,         // 単価[円/現地通貨]
-    pub shares: Option<i32>,                // 数量[株/口]
-    pub dividends_before_tax: Option<i32>,  // 配当・分配金（税引前）[円/現地通貨]
-    pub taxes: Option<i32>,                 // 税額[円/現地通貨]
-    pub net_amount_received: Option<i32>,   // 受取金額[円/現地通貨]
+    pub settlement_date: Option<NaiveDate>,      // 入金日(受渡日)
+    pub product: Option<String>,                 // 商品
+    pub account: Option<String>,                 // 口座
+    pub security_code: Option<String>,           // 銘柄コード
+    pub security_name: Option<String>,           // 銘柄
+    pub currency: Option<String>,                // 受取通貨
+    pub unit_price: Option<String>,              // 単価[円/現地通貨]
+    pub shares: Option<i32>,                     // 数量[株/口]
+    pub dividends_before_tax: Option<i32>,       // 配当・分配金（税引前）[円/現地通貨]
+    pub taxes: Option<i32>,                      // 税額[円/現地通貨]
+    pub net_amount_received: Option<i32>,        // 受取金額[円/現地通貨]
     pub total_dividends_before_tax: Option<i32>, // 配当・分配金合計（税引前）[円/現地通貨]
-    pub total_taxes: Option<i32>,           // 税額合計[円/現地通貨]
-    pub total_net_amount_received: Option<i32>, // 受取金額合計[円/現地通貨]
+    pub total_taxes: Option<i32>,                // 税額合計[円/現地通貨]
+    pub total_net_amount_received: Option<i32>,  // 受取金額合計[円/現地通貨]
 }
 
 impl ReceiptProps for DividendList {
     fn new() -> Self {
         Self {
-            base: BaseReceiptProps::new(""),
             settlement_date: None,
             product: None,
             account: None,
@@ -54,7 +52,7 @@ impl ReceiptProps for DividendList {
             ("account", self.account.clone()),
             ("security_code", self.security_code.clone()),
             ("security_name", self.security_name.clone()),
-            ("currency", self.currency.clone()),
+            // ("currency", self.currency.clone()),
             ("unit_price", self.unit_price.clone()),
             ("shares", self.shares.map(|s| s.to_string())),
             (
@@ -109,7 +107,6 @@ impl ReceiptProps for DividendList {
             );
 
         Self {
-            base: BaseReceiptProps::new("table-success"),
             settlement_date: None,
             product: None,
             account: None,
@@ -127,13 +124,8 @@ impl ReceiptProps for DividendList {
         }
     }
 
-    fn get_tr_class(&self) -> String {
-        self.base.tr_class.clone()
-    }
-
     fn from_string_record(record: StringRecord) -> Self {
         DividendList {
-            base: BaseReceiptProps::new(""),
             settlement_date: Self::parse_date(record.get(0)),
             product: Self::parse_string(record.get(1)),
             account: Self::parse_string(record.get(2)),

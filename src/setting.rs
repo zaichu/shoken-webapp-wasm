@@ -17,17 +17,17 @@ lazy_static! {
     map.insert("purchase_price", "平均取得価額");
     map.insert("realized_profit_and_loss", "実現損益");
     map.insert("total_realized_profit_and_loss", "合計実現損益");
-    map.insert("withholding_tax", "源泉徴収税額");
-    map.insert("profit_and_loss", "損益");
+    map.insert("withholding_tax", "合計税額");
+    map.insert("profit_and_loss", "合計実現損益");
     map.insert("product", "商品");
     map.insert("currency", "受取通貨");
     map.insert("unit_price", "単価");
-    map.insert("dividends_before_tax", "配当・分配金(税引前)");
+    map.insert("dividends_before_tax", "配当・分配金");
     map.insert("taxes", "税額");
     map.insert("net_amount_received", "受取金額");
-    map.insert("total_dividends_before_tax", "配当・分配金合計(税引前)");
-    map.insert("total_taxes", "税額合計");
-    map.insert("total_net_amount_received", "受取金額");
+    map.insert("total_dividends_before_tax", "合計配当・分配金");
+    map.insert("total_taxes", "合計税額");
+    map.insert("total_net_amount_received", "合計受取金額");
     map
 };
 
@@ -49,6 +49,7 @@ lazy_static! {
         "total_realized_profit_and_loss", // 合計実現損益
         "total_taxes",                    // 税額合計
         "withholding_tax",                // 源泉徴収税額
+        "unit_price",                     // 単価
     ].iter().cloned().collect();
 
     pub static ref DATE_FORMAT_KEYS: HashSet<&'static str> = [
