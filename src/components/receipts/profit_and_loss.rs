@@ -4,11 +4,10 @@ use yew::prelude::*;
 
 use crate::setting::TAX_RATE;
 
-use super::lib::{BaseReceiptProps, ReceiptProps};
+use super::lib::ReceiptProps;
 
 #[derive(PartialEq, Properties, Debug, Clone)]
 pub struct ProfitAndLoss {
-    pub base: BaseReceiptProps,
     pub trade_date: Option<NaiveDate>,               // 約定日
     pub settlement_date: Option<NaiveDate>,          // 受渡日
     pub security_code: Option<String>,               // 銘柄コード
@@ -27,7 +26,6 @@ pub struct ProfitAndLoss {
 impl ReceiptProps for ProfitAndLoss {
     fn new() -> Self {
         Self {
-            base: BaseReceiptProps::new(""),
             trade_date: None,
             settlement_date: None,
             security_code: None,
@@ -46,7 +44,6 @@ impl ReceiptProps for ProfitAndLoss {
 
     fn from_string_record(record: StringRecord) -> Self {
         Self {
-            base: BaseReceiptProps::new(""),
             trade_date: Self::parse_date(record.get(0)),
             settlement_date: Self::parse_date(record.get(1)),
             security_code: Self::parse_string(record.get(2)),
@@ -65,10 +62,6 @@ impl ReceiptProps for ProfitAndLoss {
 
     fn get_date(&self) -> Option<NaiveDate> {
         self.trade_date
-    }
-
-    fn get_tr_class(&self) -> String {
-        self.base.tr_class.clone()
     }
 
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)> {
@@ -128,7 +121,6 @@ impl ReceiptProps for ProfitAndLoss {
         let total = specific_account_total + nisa_account_total;
 
         Self {
-            base: BaseReceiptProps::new("table-success"),
             trade_date: None,
             settlement_date: None,
             security_code: None,

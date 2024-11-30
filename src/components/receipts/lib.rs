@@ -27,15 +27,11 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
         let file_name = file_name.clone();
         use_effect_with((*csv_file).clone(), move |csv_file| {
             let csv_file = csv_file.clone();
-            file_name.set(
-                csv_file
-                    .as_ref()
-                    .map(|file| file.name())
-                    .unwrap_or_else(|| "CSVファイルを選択してください。".to_string()),
-            );
+            file_name.set("".to_string());
 
             if let Some(csv_file) = csv_file {
                 spawn_local(async move {
+                    file_name.set(csv_file.name());
                     let result = read_file(&csv_file)
                         .await
                         .and_then(|content| process_csv_content(item_map, content));
@@ -57,7 +53,7 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
                 <input id="csv-file-input" type="file" accept=".csv" style="display:none" oninput={on_input} />
                 <input type="text" class="form-control" readonly=true value={(*file_name).clone()} />
             </div>
-            <div class="mt-4">
+            <div class="mt-2">
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0">{ props.name.clone() }</h5>
@@ -82,8 +78,8 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
                                     for item_map.iter().map(|(_, items)| {
                                         html! {
                                         <>
-                                            { for items.iter().rev().map(|item| item.view()) }
-                                            { T::get_profit_record(items).view() }
+                                            { for items.iter().rev().map(|item| item.view(None)) }
+                                            { T::get_profit_record(items).view(Some(format!("table-success"))) }
                                         </>
                                         }
                                     })
@@ -150,25 +146,11 @@ async fn read_file(file: &File) -> Result<Vec<u8>> {
     Ok(js_sys::Uint8Array::new(&array_buffer).to_vec())
 }
 
-#[derive(PartialEq, Properties, Debug, Clone, Eq)]
-pub struct BaseReceiptProps {
-    pub tr_class: String,
-}
-
-impl BaseReceiptProps {
-    pub fn new(_tr_class: &str) -> Self {
-        Self {
-            tr_class: _tr_class.to_string(),
-        }
-    }
-}
-
 pub trait ReceiptProps: Clone + Sized + PartialEq {
     fn new() -> Self;
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)>;
     fn get_date(&self) -> Option<NaiveDate>;
     fn get_profit_record(items: &[Self]) -> Self;
-    fn get_tr_class(&self) -> String;
     fn from_string_record(record: StringRecord) -> Self;
 
     fn format_value(key: &str, value: &str) -> String {
@@ -269,9 +251,9 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
         }
     }
 
-    fn view(&self) -> Html {
+    fn view(&self, tr_class: Option<String>) -> Html {
         html! {
-            <tr class={&self.get_tr_class()}>
+            <tr class={tr_class}>
                 { for self.get_all_fields().iter().map(|(key, value)| {
                     let value = value.as_deref().unwrap_or("");
                     let value = Self::format_value(key, value);
