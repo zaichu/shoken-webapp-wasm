@@ -1,12 +1,33 @@
+use gloo_net::http::Request;
+use web_sys::window;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::app::Route;
+use crate::{app::Route, env};
 
 #[function_component]
 pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
+    let on_click = {
+        Callback::from(move |_: MouseEvent| {
+            yew::platform::spawn_local(async move {
+                let response = Request::get(&env::SHOKEN_WEBAPI_OAUTH_GOOGLE)
+                    .send()
+                    .await
+                    .unwrap();
+                let auth_url: String = response.json().await.unwrap();
+                let window = window().unwrap();
+                window.location().set_href(&auth_url).unwrap();
+            });
+        })
+    };
+
     html! {
         <>
+            // <div class="mb-3">
+            //     <button onclick={on_click}>
+            //         { "Googleでログイン" }
+            //     </button>
+            // </div>
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <div class="container" style="max-width: 1600px;">
                     <Link<Route> classes="navbar-brand" to={Route::Home}>{ "証券Web" }</Link<Route>>

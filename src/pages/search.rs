@@ -5,7 +5,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::{console, HtmlInputElement};
 use yew::prelude::*;
 
-use crate::{components::Layout, setting::STOCK_INFO_LINKS};
+use crate::{components::Layout, env, setting::STOCK_INFO_LINKS};
 
 #[derive(Clone, PartialEq, Deserialize, Serialize, Default)]
 struct Stock {
@@ -94,7 +94,7 @@ pub fn Search() -> Html {
 }
 
 async fn fetch_stock_data(value: &str) -> Result<Stock, String> {
-    let url = format!("https://shoken-webapp-api-b4a1.shuttle.app/stock/{}", value);
+    let url = format!("{}{}", env::SHOKEN_WEBAPI_STOCK, value);
     let response = Request::get(&url).send().await.map_err(|e| e.to_string())?;
 
     if response.ok() {
