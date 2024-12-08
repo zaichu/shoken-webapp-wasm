@@ -1,8 +1,8 @@
+use gloo::console;
 use gloo_net::http::Request;
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{console, HtmlInputElement};
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use crate::{components::Layout, env, setting::STOCK_INFO_LINKS};
@@ -36,13 +36,13 @@ pub fn Search() -> Html {
             code_or_name.set(value.clone());
             stock.set(Stock::default());
 
-            console::log_1(&JsValue::from_str(&format!("Input value: {value}")));
+            console::log!(format!("Input value: {value}"));
 
             let stock = stock.clone();
             spawn_local(async move {
                 match fetch_stock_data(&value).await {
                     Ok(new_stock) => stock.set(new_stock),
-                    Err(err) => console::log_1(&JsValue::from_str(&err)),
+                    Err(err) => console::log!(&err.to_string()),
                 }
             });
         })

@@ -1,6 +1,6 @@
+use gloo::console;
 use gloo_net::http::Request;
-use wasm_bindgen::JsValue;
-use web_sys::{console, window};
+use web_sys::window;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -55,9 +55,9 @@ fn on_login_callback() -> Callback<MouseEvent> {
                         let window = window().unwrap();
                         window.location().set_href(&auth_url).unwrap();
                     }
-                    Err(err) => console::log_1(&JsValue::from_str(&err.to_string())),
+                    Err(err) => console::log!(&err.to_string()),
                 },
-                Err(err) => console::log_1(&JsValue::from_str(&err.to_string())),
+                Err(err) => console::log!(&err.to_string()),
             }
         };
         yew::platform::spawn_local(future);
