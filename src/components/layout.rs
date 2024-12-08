@@ -1,5 +1,6 @@
 use gloo_net::http::Request;
-use web_sys::window;
+use wasm_bindgen::JsValue;
+use web_sys::{console, window};
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -7,27 +8,14 @@ use crate::{app::Route, env};
 
 #[function_component]
 pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
-    let on_click = {
-        Callback::from(move |_: MouseEvent| {
-            yew::platform::spawn_local(async move {
-                let response = Request::get(&env::SHOKEN_WEBAPI_OAUTH_GOOGLE)
-                    .send()
-                    .await
-                    .unwrap();
-                let auth_url: String = response.json().await.unwrap();
-                let window = window().unwrap();
-                window.location().set_href(&auth_url).unwrap();
-            });
-        })
-    };
-
+    let on_click = on_login_callback();
     html! {
         <>
-            // <div class="mb-3">
-            //     <button onclick={on_click}>
-            //         { "Googleでログイン" }
-            //     </button>
-            // </div>
+            <div class="mb-3">
+                <button onclick={on_click}>
+                    { "Googleでログイン" }
+                </button>
+            </div>
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <div class="container" style="max-width: 1600px;">
                     <Link<Route> classes="navbar-brand" to={Route::Home}>{ "証券Web" }</Link<Route>>
@@ -56,4 +44,22 @@ pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
             </footer>
         </>
     }
+}
+
+fn on_login_callback() -> Callback<MouseEvent> {
+    Callback::from(move |_: MouseEvent| {
+        let future = async {
+            match Request::get(&env::SHOKEN_WEBAPI_OAUTH_GOOGLE).send().await {
+                Ok(response) => match response.json::<String>().await {
+                    Ok(auth_url) => {
+                        let window = window().unwrap();
+                        window.location().set_href(&auth_url).unwrap();
+                    }
+                    Err(err) => console::log_1(&JsValue::from_str(&err.to_string())),
+                },
+                Err(err) => console::log_1(&JsValue::from_str(&err.to_string())),
+            }
+        };
+        yew::platform::spawn_local(future);
+    })
 }
