@@ -5,7 +5,7 @@ use crate::{
 use gloo::console;
 use url::Url;
 use wasm_bindgen::JsValue;
-use web_sys::{window, Storage, Window};
+use web_sys::{window, Window};
 use yew::prelude::*;
 use yew_router::prelude::*;
 
