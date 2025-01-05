@@ -14,7 +14,7 @@ pub enum OAuthError {
     #[error("Invalid URL: {0}")]
     InvalidUrl(#[from] oauth2::url::ParseError),
     #[error("OAuth client creation failed")]
-    ClientCreationFailed,
+    _ClientCreationFailed,
 }
 
 fn create_oauth_client() -> Result<BasicClient, OAuthError> {
