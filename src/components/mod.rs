@@ -1,3 +1,4 @@
+pub mod handlers;
 mod layout;
 pub mod receipts;
 mod use_info;

@@ -1,10 +1,11 @@
 use gloo::console;
-use gloo_net::http::Request;
 use web_sys::window;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{app::Route, env};
+use crate::app::Route;
+
+use super::handlers::oauth_google::{google_oauth, OAuthError};
 
 #[function_component]
 pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
@@ -49,14 +50,11 @@ pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
 fn on_login_callback() -> Callback<MouseEvent> {
     Callback::from(move |_: MouseEvent| {
         let future = async {
-            match Request::get(&env::SHOKEN_WEBAPI_OAUTH_GOOGLE).send().await {
-                Ok(response) => match response.json::<String>().await {
-                    Ok(auth_url) => {
-                        let window = window().unwrap();
-                        window.location().set_href(&auth_url).unwrap();
-                    }
-                    Err(err) => console::log!(&err.to_string()),
-                },
+            match google_oauth::<OAuthError>().await {
+                Ok((auth_url, _csrf_token)) => {
+                    let window = window().unwrap();
+                    window.location().set_href(&auth_url.to_string()).unwrap();
+                }
                 Err(err) => console::log!(&err.to_string()),
             }
         };
