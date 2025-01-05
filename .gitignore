@@ -22,5 +22,7 @@ Cargo.lock
 
 # Added by cargo
 
-
 dist/
+src/env.rs
+
+.env
