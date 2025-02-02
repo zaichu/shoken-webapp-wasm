@@ -32,7 +32,7 @@ fn create_oauth_client() -> Result<BasicClient, OAuthError> {
     )
 }
 
-pub async fn google_oauth<ApiError>() -> Result<(Url, CsrfToken), OAuthError> {
+pub async fn google_oauth() -> Result<(Url, CsrfToken), OAuthError> {
     let client = create_oauth_client()?;
     Ok(client
         .authorize_url(CsrfToken::new_random)

@@ -67,7 +67,7 @@ fn get_user_info_from_url(window: &Window) -> Option<UserInfo> {
                 .find(|(key, _)| key == "code")
                 .map(|(_, auth_code)| {
                     let new_info = UserInfo {
-                        auth_code: auth_code.to_string(),
+                        auth_code: Some(auth_code.to_string()),
                         ..Default::default()
                     };
                     save_user_info_to_storage(&new_info);
@@ -89,7 +89,7 @@ fn get_user_info_from_storage(window: &Window) -> Option<UserInfo> {
 fn save_user_info_to_storage(user_info: &UserInfo) {
     if let Ok(json) = serde_json::to_string(user_info) {
         if let Some(storage) = window().and_then(|w| w.local_storage().ok()).flatten() {
-            let _ = storage.set_item("user_info", &json);
+            _ = storage.set_item("user_info", &json);
         }
     }
 }
