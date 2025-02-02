@@ -136,4 +136,27 @@ impl ReceiptProps for ProfitAndLoss {
             profit_and_loss: Some(total - withholding_tax as i32),
         }
     }
+
+    fn view_summary(items: &[Self]) -> Html {
+        let (total_realized_profit_and_loss, withholding_tax, profit_and_loss) = items.iter().fold(
+            (0, 0, 0),
+            |(total_realized_profit_and_loss, withholding_tax, profit_and_loss), p| {
+                (
+                    total_realized_profit_and_loss + p.total_realized_profit_and_loss.unwrap(),
+                    withholding_tax + p.withholding_tax.unwrap(),
+                    profit_and_loss + p.profit_and_loss.unwrap(),
+                )
+            },
+        );
+
+        html! {
+            <tbody>
+                <tr>
+                    { Self::render_td_tr_summary("total_realized_profit_and_loss", total_realized_profit_and_loss) }
+                    { Self::render_td_tr_summary("withholding_tax", withholding_tax as i32) }
+                    { Self::render_td_tr_summary("profit_and_loss", profit_and_loss) }
+                </tr>
+            </tbody>
+        }
+    }
 }

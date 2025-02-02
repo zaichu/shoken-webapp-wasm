@@ -17,28 +17,30 @@ pub struct ReceiptTemplateProps {
 #[function_component]
 pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) -> Html {
     let item_map = use_state(BTreeMap::<NaiveDate, Vec<T>>::new);
+    let item_summary = use_state(Vec::<T>::new);
     let csv_file = use_state(|| None::<File>);
     let file_name = use_state(|| "CSVファイルを選択してください。".to_string());
 
     let on_input = on_input_callback(csv_file.clone());
 
     {
-        let item_map = item_map.clone();
         let file_name = file_name.clone();
-        use_effect_with((*csv_file).clone(), move |csv_file| {
-            let csv_file = csv_file.clone();
-            file_name.set("".to_string());
+        let item_map = item_map.clone();
+        let item_summary = item_summary.clone();
 
-            if let Some(csv_file) = csv_file {
+        use_effect_with((*csv_file).clone(), move |csv_file| {
+            file_name.set("".to_string());
+            item_summary.set(Vec::<T>::new());
+
+            if let Some(csv_file) = csv_file.clone() {
                 spawn_local(async move {
                     file_name.set(csv_file.name());
-                    let result = read_file(&csv_file)
+                    if let Err(err) = read_file(&csv_file)
                         .await
-                        .and_then(|content| process_csv_content(item_map, content));
-
-                    if let Err(err) = result {
+                        .and_then(|content| process_csv_content(item_map, item_summary, content))
+                    {
                         console::log!(err.to_string());
-                    }
+                    };
                 });
             }
         });
@@ -48,14 +50,17 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
         <>
             <div class="input-group">
                 <label class="input-group-btn" for="csv-file-input">
-                    <span class="btn btn-primary">{ "CSVファイル選択" }</span>
+                    <span class="btn bg-info text-white">{ "CSVファイル選択" }</span>
                 </label>
                 <input id="csv-file-input" type="file" accept=".csv" style="display:none" oninput={on_input} />
                 <input type="text" class="form-control" readonly=true value={(*file_name).clone()} />
             </div>
             <div class="mt-2">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-primary text-white">
+                <table class="table table-bordered">{ T::view_summary(&(*item_summary)) }</table>
+            </div>
+            <div class="mt-1">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
                         <h5 class="mb-0">{ props.name.clone() }</h5>
                     </div>
                     if csv_file.is_some() {
@@ -104,24 +109,31 @@ fn on_input_callback(csv_file: UseStateHandle<Option<File>>) -> Callback<InputEv
 
 fn process_csv_content<T: ReceiptProps + 'static>(
     item_map: UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
+    item_summary: UseStateHandle<Vec<T>>,
     content: Vec<u8>,
 ) -> Result<()> {
     let records = self::read_csv(content)?;
-    item_map.set(
-        records
-            .into_iter()
-            .filter_map(|record| {
-                let item = T::from_string_record(record);
-                item.get_date().map(|date| (date, item))
-            })
-            .fold(
-                BTreeMap::new(),
-                |mut acc: BTreeMap<NaiveDate, Vec<T>>, (date, item)| {
-                    acc.entry(date).or_default().push(item);
-                    acc
-                },
-            ),
-    );
+    let new_item_map = records
+        .into_iter()
+        .filter_map(|record| {
+            let item = T::from_string_record(record);
+            item.get_date().map(|date| (date, item))
+        })
+        .fold(
+            BTreeMap::new(),
+            |mut acc: BTreeMap<NaiveDate, Vec<T>>, (date, item)| {
+                acc.entry(date).or_default().push(item);
+                acc
+            },
+        );
+    item_map.set(new_item_map.clone());
+
+    let new_item_summary: Vec<_> = new_item_map
+        .iter()
+        .map(|(_, items)| T::get_profit_record(items))
+        .collect();
+    item_summary.set(new_item_summary);
+
     Ok(())
 }
 
@@ -152,6 +164,7 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
     fn get_date(&self) -> Option<NaiveDate>;
     fn get_profit_record(items: &[Self]) -> Self;
     fn from_string_record(record: StringRecord) -> Self;
+    fn view_summary(items: &[Self]) -> Html;
 
     fn format_value(key: &str, value: &str) -> String {
         if YEN_FORMAT_KEYS.contains(key) {
@@ -269,6 +282,22 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
                     }
                 })}
             </tr>
+        }
+    }
+
+    fn render_td_tr_summary(key: &str, value: i32) -> Html {
+        let style = "max-width: 30px;";
+        let mut class = "text-nowrap".to_string();
+        let value = &format!("{value}");
+        let value = Self::format_value(key, value);
+        if value.starts_with("¥ -") {
+            class = format!("{} text-danger", class);
+        }
+        html! {
+        <>
+            <th class="bg-info text-white text-nowrap" style="max-width: 20px;">{HEADERS.get(key).unwrap_or(&key)}</th>
+            <td class={class} style={style}>{value}</td>
+        </>
         }
     }
 }

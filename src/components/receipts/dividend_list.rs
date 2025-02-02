@@ -142,4 +142,28 @@ impl ReceiptProps for DividendList {
             total_net_amount_received: None,
         }
     }
+
+    fn view_summary(items: &[Self]) -> Html {
+        let (total_dividends_before_tax, total_taxes, total_net_amount_received) =
+            items.iter().fold(
+                (0, 0, 0),
+                |(total_dividends_before_tax, total_taxes, total_net_amount_received), dividend| {
+                    (
+                        total_dividends_before_tax + dividend.total_dividends_before_tax.unwrap(),
+                        total_taxes + dividend.total_taxes.unwrap(),
+                        total_net_amount_received + dividend.total_net_amount_received.unwrap(),
+                    )
+                },
+            );
+
+        html! {
+            <tbody>
+                <tr>
+                    { Self::render_td_tr_summary("total_dividends_before_tax", total_dividends_before_tax) }
+                    { Self::render_td_tr_summary("total_taxes", total_taxes) }
+                    { Self::render_td_tr_summary("total_net_amount_received", total_net_amount_received) }
+                </tr>
+            </tbody>
+        }
+    }
 }
