@@ -18,7 +18,7 @@ lazy_static! {
     map.insert("realized_profit_and_loss", "実現損益");
     map.insert("total_realized_profit_and_loss", "合計実現損益");
     map.insert("withholding_tax", "合計税額");
-    map.insert("profit_and_loss", "合計実現損益");
+    map.insert("profit_and_loss", "合計実現損益(税引)");
     map.insert("product", "商品");
     map.insert("currency", "受取通貨");
     map.insert("unit_price", "単価");
