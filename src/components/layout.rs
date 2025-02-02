@@ -5,7 +5,7 @@ use yew_router::prelude::*;
 
 use crate::app::Route;
 
-use super::{handlers::oauth_google::google_oauth, UserInfo};
+use super::{/* handlers::oauth_google::google_oauth, */ UserInfo};
 
 #[function_component]
 pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
@@ -42,7 +42,7 @@ pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
         </>
     }
 }
-
+/*
 #[function_component]
 fn Login() -> Html {
     let on_click = Callback::from(move |_| {
@@ -98,3 +98,4 @@ fn render_auth_component(user_info: Option<UserInfo>) -> Html {
         None => html! { <Login /> },
     }
 }
+ */
