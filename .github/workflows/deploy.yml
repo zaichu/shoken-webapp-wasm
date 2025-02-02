@@ -18,6 +18,7 @@ jobs:
       CARGO_TERM_COLOR: always
 
     steps:
+      - uses: actions/checkout@v2
       - name: Make env.rs
         run: |
           echo "pub const SHOKEN_WEBAPI_GOOGLE_OAUTH_CLIENT_ID: &str = \"${{ secrets.SHOKEN_WEBAPI_GOOGLE_OAUTH_CLIENT_ID }}\";" >> src/env.rs
@@ -25,7 +26,6 @@ jobs:
           echo "pub const SHOKEN_WEBAPI_OAUTH_GOOGLE: &str = \"${{ secrets.SHOKEN_WEBAPI_OAUTH_GOOGLE }}\";" >> src/env.rs
           echo "pub const SHOKEN_WEBAPI_REDIRECT_URL: &str = \"${{ secrets.SHOKEN_WEBAPI_REDIRECT_URL }}\";" >> src/env.rs
           echo "pub const SHOKEN_WEBAPI_STOCK: &str = \"${{ secrets.SHOKEN_WEBAPI_STOCK }}\";" >> src/env.rs
-      - uses: actions/checkout@v2
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
