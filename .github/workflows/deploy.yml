@@ -35,6 +35,7 @@ jobs:
           echo "    pub const SHOKEN_WEBAPI_REDIRECT_URL: &str = \"${{ secrets.SHOKEN_WEBAPI_REDIRECT_URL }}\";" >> src/env.rs
           echo "    pub const SHOKEN_WEBAPI_STOCK: &str = \"${{ secrets.SHOKEN_WEBAPI_STOCK }}\";" >> src/env.rs
           echo "}" >> src/env.rs
+          ls
       - name: Clean Build
         run: make clean && make build
       - name: Copy 404.html
