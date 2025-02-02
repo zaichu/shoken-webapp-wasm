@@ -6,7 +6,7 @@ use crate::components::{
     Layout,
 };
 
-#[derive(Clone, PartialEq, Eq, Debug, EnumMessage)]
+#[derive(Clone, PartialEq, Eq, Debug, EnumMessage, Copy)]
 pub enum ReceiptsType {
     #[strum(message = "配当金")]
     Dividend,
@@ -29,19 +29,11 @@ pub fn Receipts() -> Html {
     let name = selected_type.get_message().unwrap();
     html! {
         <Layout>
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                <div class="container" style="max-width: 1600px;">
-                    <div class="collapse navbar-collapse" id="navbarNav">
-                        <ul class="navbar-nav">
-                            <li class="nav-item">
-                                <button class="nav-link" onclick={on_click.reform(|_| ReceiptsType::Dividend)}>{ ReceiptsType::Dividend.get_message() }</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link" onclick={on_click.reform(|_| ReceiptsType::ProfitAndLoss)}>{ ReceiptsType::ProfitAndLoss.get_message() }</button>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+            <nav class="nav nav-tabs">
+                <ul class="nav nav-tabs">
+                    {render_nav_item(&selected_type, ReceiptsType::Dividend, &on_click)}
+                    {render_nav_item(&selected_type, ReceiptsType::ProfitAndLoss, &on_click)}
+                </ul>
             </nav>
             <div class="mt-4"> {
                 match *selected_type {
@@ -50,5 +42,22 @@ pub fn Receipts() -> Html {
                 }}
             </div>
         </Layout>
+    }
+}
+
+fn render_nav_item(
+    selected_type: &ReceiptsType,
+    item_type: ReceiptsType,
+    on_click: &Callback<ReceiptsType>,
+) -> Html {
+    html! {
+        <li class="nav-item">
+            <button
+                class={if *selected_type == item_type {"nav-link active"} else {"nav-link"}}
+                onclick={on_click.reform(move |_| item_type)}
+            >
+                { item_type.get_message() }
+            </button>
+        </li>
     }
 }

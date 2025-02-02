@@ -3,10 +3,10 @@ use anyhow::{anyhow, Result};
 use chrono::NaiveDate;
 use csv::StringRecord;
 use encoding_rs::SHIFT_JIS;
+use gloo::console;
 use std::collections::BTreeMap;
-use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::{spawn_local, JsFuture};
-use web_sys::{console, js_sys, File, HtmlInputElement};
+use web_sys::{js_sys, File, HtmlInputElement};
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq, Debug, Clone)]
@@ -37,7 +37,7 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
                         .and_then(|content| process_csv_content(item_map, content));
 
                     if let Err(err) = result {
-                        console::log_1(&JsValue::from_str(&format!("Error: {:?}", err)));
+                        console::log!(err.to_string());
                     }
                 });
             }

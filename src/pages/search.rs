@@ -1,11 +1,11 @@
+use gloo::console;
 use gloo_net::http::Request;
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{console, HtmlInputElement};
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use crate::{components::Layout, setting::STOCK_INFO_LINKS};
+use crate::{components::Layout, env, setting::STOCK_INFO_LINKS};
 
 #[derive(Clone, PartialEq, Deserialize, Serialize, Default)]
 struct Stock {
@@ -36,13 +36,13 @@ pub fn Search() -> Html {
             code_or_name.set(value.clone());
             stock.set(Stock::default());
 
-            console::log_1(&JsValue::from_str(&format!("Input value: {value}")));
+            console::log!(format!("Input value: {value}"));
 
             let stock = stock.clone();
             spawn_local(async move {
                 match fetch_stock_data(&value).await {
                     Ok(new_stock) => stock.set(new_stock),
-                    Err(err) => console::log_1(&JsValue::from_str(&err)),
+                    Err(err) => console::log!(&err.to_string()),
                 }
             });
         })
@@ -94,7 +94,7 @@ pub fn Search() -> Html {
 }
 
 async fn fetch_stock_data(value: &str) -> Result<Stock, String> {
-    let url = format!("https://shoken-webapp-api-b4a1.shuttle.app/stock/{}", value);
+    let url = format!("{}{}", env::SHOKEN_WEBAPI_STOCK, value);
     let response = Request::get(&url).send().await.map_err(|e| e.to_string())?;
 
     if response.ok() {

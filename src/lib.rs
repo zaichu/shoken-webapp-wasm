@@ -2,6 +2,7 @@ use wasm_bindgen::prelude::*;
 
 mod app;
 mod components;
+mod env;
 mod pages;
 mod setting;
 
