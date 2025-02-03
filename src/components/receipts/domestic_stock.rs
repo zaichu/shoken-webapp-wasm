@@ -8,19 +8,19 @@ use super::lib::ReceiptProps;
 
 #[derive(PartialEq, Properties, Debug, Clone)]
 pub struct DomesticStock {
-    pub trade_date: Option<NaiveDate>,               // 約定日
-    pub settlement_date: Option<NaiveDate>,          // 受渡日
-    pub security_code: Option<String>,               // 銘柄コード
-    pub security_name: Option<String>,               // 銘柄名
-    pub account: Option<String>,                     // 口座
-    pub shares: Option<i32>,                         // 数量[株]
-    pub asked_price: Option<f64>,                    // 売却/決済単価[円]
-    pub proceeds: Option<i32>,                       // 売却/決済額[円]
-    pub purchase_price: Option<f64>,                 // 平均取得価額[円]
-    pub realized_profit_and_loss: Option<i32>,       // 実現損益[円]
-    pub total_realized_profit_and_loss: Option<i32>, // 合計実現損益[円]
-    pub withholding_tax: Option<u32>,                // 源泉徴収税額
-    pub profit_and_loss: Option<i32>,                // 損益
+    pub trade_date: Option<NaiveDate>,                         // 約定日
+    pub settlement_date: Option<NaiveDate>,                    // 受渡日
+    pub security_code: Option<String>,                         // 銘柄コード
+    pub security_name: Option<String>,                         // 銘柄名
+    pub account: Option<String>,                               // 口座
+    pub shares: Option<i32>,                                   // 数量[株]
+    pub asked_price: Option<f64>,                              // 売却/決済単価[円]
+    pub proceeds: Option<i32>,                                 // 売却/決済額[円]
+    pub purchase_price: Option<f64>,                           // 平均取得価額[円]
+    pub realized_profit_and_loss: Option<i32>,                 // 実現損益[円]
+    pub total_realized_profit_and_loss: Option<i32>,           // 合計実現損益[円]
+    pub total_taxes: Option<u32>,                              // 源泉徴収税額
+    pub total_realized_profit_and_loss_after_tax: Option<i32>, // 損益
 }
 
 impl ReceiptProps for DomesticStock {
@@ -37,8 +37,8 @@ impl ReceiptProps for DomesticStock {
             purchase_price: None,
             realized_profit_and_loss: None,
             total_realized_profit_and_loss: None,
-            withholding_tax: None,
-            profit_and_loss: None,
+            total_taxes: None,
+            total_realized_profit_and_loss_after_tax: None,
         }
     }
 
@@ -49,14 +49,14 @@ impl ReceiptProps for DomesticStock {
             security_code: Self::parse_string(record.get(2)),
             security_name: Self::parse_string(record.get(3)),
             account: Self::parse_string(record.get(4)),
-            shares: Self::parse_int(record.get(7)),
-            asked_price: Self::parse_float(record.get(8)),
-            proceeds: Self::parse_int(record.get(9)),
-            purchase_price: Self::parse_float(record.get(10)),
-            realized_profit_and_loss: Self::parse_int(record.get(11)),
+            shares: Self::parse_i32(record.get(7)),
+            asked_price: Self::parse_f64(record.get(8)),
+            proceeds: Self::parse_i32(record.get(9)),
+            purchase_price: Self::parse_f64(record.get(10)),
+            realized_profit_and_loss: Self::parse_i32(record.get(11)),
             total_realized_profit_and_loss: None,
-            withholding_tax: None,
-            profit_and_loss: None,
+            total_taxes: None,
+            total_realized_profit_and_loss_after_tax: None,
         }
     }
 
@@ -86,13 +86,11 @@ impl ReceiptProps for DomesticStock {
                 "total_realized_profit_and_loss",
                 self.total_realized_profit_and_loss.map(|p| p.to_string()),
             ),
+            ("total_taxes", self.total_taxes.map(|p| p.to_string())),
             (
-                "withholding_tax",
-                self.withholding_tax.map(|p| p.to_string()),
-            ),
-            (
-                "profit_and_loss",
-                self.profit_and_loss.map(|p| p.to_string()),
+                "total_realized_profit_and_loss_after_tax",
+                self.total_realized_profit_and_loss_after_tax
+                    .map(|p| p.to_string()),
             ),
         ]
     }
@@ -100,10 +98,10 @@ impl ReceiptProps for DomesticStock {
     fn get_profit_record(items: &[Self]) -> Self {
         let (specific_account_total, nisa_account_total) = items
             .iter()
-            .filter_map(|profit_and_loss| {
+            .filter_map(|domestic_stock| {
                 Some((
-                    profit_and_loss.account.as_deref()?,
-                    profit_and_loss.realized_profit_and_loss?,
+                    domestic_stock.account.as_deref()?,
+                    domestic_stock.realized_profit_and_loss?,
                 ))
             })
             .fold(
@@ -117,7 +115,7 @@ impl ReceiptProps for DomesticStock {
                 },
             );
 
-        let withholding_tax = ((specific_account_total.max(0) as f64) * TAX_RATE) as u32;
+        let total_taxes = ((specific_account_total.max(0) as f64) * TAX_RATE) as u32;
         let total = specific_account_total + nisa_account_total;
 
         Self {
@@ -132,31 +130,36 @@ impl ReceiptProps for DomesticStock {
             purchase_price: None,
             realized_profit_and_loss: None,
             total_realized_profit_and_loss: Some(total),
-            withholding_tax: Some(withholding_tax),
-            profit_and_loss: Some(total - withholding_tax as i32),
+            total_taxes: Some(total_taxes),
+            total_realized_profit_and_loss_after_tax: Some(total - total_taxes as i32),
         }
     }
 
     fn view_summary(items: &[Self]) -> Html {
-        let (total_realized_profit_and_loss, withholding_tax, profit_and_loss) = items.iter().fold(
-            (0, 0, 0),
-            |(total_realized_profit_and_loss, withholding_tax, profit_and_loss), p| {
-                (
-                    total_realized_profit_and_loss + p.total_realized_profit_and_loss.unwrap(),
-                    withholding_tax + p.withholding_tax.unwrap(),
-                    profit_and_loss + p.profit_and_loss.unwrap(),
-                )
-            },
-        );
+        let (total_realized_profit_and_loss, total_taxes, total_realized_profit_and_loss_after_tax) =
+            items.iter().fold(
+                (0, 0, 0),
+                |(total_realized_profit_and_loss, withholding_tax, profit_and_loss), p| {
+                    (
+                        total_realized_profit_and_loss + p.total_realized_profit_and_loss.unwrap(),
+                        withholding_tax + p.total_taxes.unwrap(),
+                        profit_and_loss + p.total_realized_profit_and_loss_after_tax.unwrap(),
+                    )
+                },
+            );
 
         html! {
             <tbody>
                 <tr>
                     { Self::render_td_tr_summary("total_realized_profit_and_loss", total_realized_profit_and_loss) }
-                    { Self::render_td_tr_summary("withholding_tax", withholding_tax as i32) }
-                    { Self::render_td_tr_summary("profit_and_loss", profit_and_loss) }
+                    { Self::render_td_tr_summary("total_taxes", total_taxes as i32) }
+                    { Self::render_td_tr_summary("total_realized_profit_and_loss_after_tax", total_realized_profit_and_loss_after_tax) }
                 </tr>
             </tbody>
         }
+    }
+
+    fn is_view(&self) -> bool {
+        true
     }
 }
