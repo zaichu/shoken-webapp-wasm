@@ -2,7 +2,7 @@ use strum::EnumMessage;
 use yew::prelude::*;
 
 use crate::components::{
-    receipts::{dividend_list::DividendList, lib::ReceiptTemplate, profit_and_loss::ProfitAndLoss},
+    receipts::{dividend_list::DividendList, domestic_stock::DomesticStock, lib::ReceiptTemplate},
     Layout,
 };
 
@@ -11,8 +11,8 @@ pub enum ReceiptsType {
     #[strum(message = "配当金")]
     Dividend,
 
-    #[strum(message = "実現損益")]
-    ProfitAndLoss,
+    #[strum(message = "国内株式")]
+    DomesticStock,
 }
 
 #[function_component]
@@ -32,13 +32,13 @@ pub fn Receipts() -> Html {
             <nav class="nav nav-tabs">
                 <ul class="nav nav-tabs">
                     {render_nav_item(&selected_type, ReceiptsType::Dividend, &on_click)}
-                    {render_nav_item(&selected_type, ReceiptsType::ProfitAndLoss, &on_click)}
+                    {render_nav_item(&selected_type, ReceiptsType::DomesticStock, &on_click)}
                 </ul>
             </nav>
             <div class="mt-4"> {
                 match *selected_type {
                     ReceiptsType::Dividend =>      html! { <ReceiptTemplate::<DividendList>  name={ name } /> },
-                    ReceiptsType::ProfitAndLoss => html! { <ReceiptTemplate::<ProfitAndLoss> name={ name } /> },
+                    ReceiptsType::DomesticStock => html! { <ReceiptTemplate::<DomesticStock> name={ name } /> },
                 }}
             </div>
         </Layout>

@@ -7,7 +7,7 @@ use crate::setting::TAX_RATE;
 use super::lib::ReceiptProps;
 
 #[derive(PartialEq, Properties, Debug, Clone)]
-pub struct ProfitAndLoss {
+pub struct DomesticStock {
     pub trade_date: Option<NaiveDate>,               // 約定日
     pub settlement_date: Option<NaiveDate>,          // 受渡日
     pub security_code: Option<String>,               // 銘柄コード
@@ -23,7 +23,7 @@ pub struct ProfitAndLoss {
     pub profit_and_loss: Option<i32>,                // 損益
 }
 
-impl ReceiptProps for ProfitAndLoss {
+impl ReceiptProps for DomesticStock {
     fn new() -> Self {
         Self {
             trade_date: None,
