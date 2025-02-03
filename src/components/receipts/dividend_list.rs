@@ -133,10 +133,10 @@ impl ReceiptProps for DividendList {
             security_name: Self::parse_string(record.get(4)),
             currency: Self::parse_string(record.get(5)),
             unit_price: Self::parse_string(record.get(6)),
-            shares: Self::parse_int(record.get(7)),
-            dividends_before_tax: Self::parse_int(record.get(8)),
-            taxes: Self::parse_int(record.get(9)),
-            net_amount_received: Self::parse_int(record.get(10)),
+            shares: Self::parse_i32(record.get(7)),
+            dividends_before_tax: Self::parse_i32(record.get(8)),
+            taxes: Self::parse_i32(record.get(9)),
+            net_amount_received: Self::parse_i32(record.get(10)),
             total_dividends_before_tax: None,
             total_taxes: None,
             total_net_amount_received: None,
@@ -165,5 +165,9 @@ impl ReceiptProps for DividendList {
                 </tr>
             </tbody>
         }
+    }
+
+    fn is_view(&self) -> bool {
+        true
     }
 }

@@ -160,6 +160,7 @@ async fn read_file(file: &File) -> Result<Vec<u8>> {
 
 pub trait ReceiptProps: Clone + Sized + PartialEq {
     fn new() -> Self;
+    fn is_view(&self) -> bool;
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)>;
     fn get_date(&self) -> Option<NaiveDate>;
     fn get_profit_record(items: &[Self]) -> Self;
@@ -231,7 +232,7 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
         }
     }
 
-    fn parse_int(num_str: Option<&str>) -> Option<i32> {
+    fn parse_i32(num_str: Option<&str>) -> Option<i32> {
         match num_str {
             Some(s) => match s.replace(",", "").parse::<i32>() {
                 Ok(n) => Some(n),
@@ -244,7 +245,20 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
         }
     }
 
-    fn parse_float(num_str: Option<&str>) -> Option<f64> {
+    fn parse_u32(num_str: Option<&str>) -> Option<u32> {
+        match num_str {
+            Some(s) => match s.replace(",", "").parse::<u32>() {
+                Ok(n) => Some(n),
+                Err(e) => {
+                    println!("Failed to parse integer '{}': {}", s, e);
+                    None
+                }
+            },
+            None => None,
+        }
+    }
+
+    fn parse_f64(num_str: Option<&str>) -> Option<f64> {
         match num_str {
             Some(s) => match s.replace(",", "").parse::<f64>() {
                 Ok(n) => Some(n),
@@ -265,6 +279,10 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
     }
 
     fn view(&self, tr_class: Option<String>) -> Html {
+        if !self.is_view() {
+            return html! {};
+        };
+
         html! {
             <tr class={tr_class}>
                 { for self.get_all_fields().iter().map(|(key, value)| {
