@@ -29,19 +29,7 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
         let receipt_summary = receipt_summary.clone();
 
         use_effect_with((*csv_file).clone(), move |csv_file| {
-            file_name.set("".to_string());
-            receipt_summary.set(BTreeMap::new());
-
-            if let Some(csv_file) = csv_file.clone() {
-                spawn_local(async move {
-                    file_name.set(csv_file.name());
-                    if let Err(err) = read_file(&csv_file).await.and_then(|content| {
-                        process_csv_content(receipt_map, receipt_summary, content)
-                    }) {
-                        console::log!(err.to_string());
-                    };
-                });
-            }
+            handle_file_change((*csv_file).clone(), file_name, receipt_map, receipt_summary);
         });
     }
 
@@ -65,44 +53,80 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
                     if csv_file.is_some() {
                         <div class="table-responsive" style="max-height: 500px;">
                             <table class="table table-bordered">
-                                <thead class="thead-light">
-                                    <tr> {
-                                        for T::new().get_all_fields().iter().map(|(header, _)| {
-                                            let header_text = HEADERS.get(header).unwrap_or(header);
-                                            html! {
-                                                <th scope="col" style="position: sticky; top: 0; background-color: white; white-space: nowrap; text-align: center;">
-                                                    { header_text }
-                                                </th>
-                                            }
-                                        })
-                                    }
-                                    </tr>
-                                </thead>
-                                <tbody> {
-                                    for receipt_map.iter().map(|(date, receipts)| {
-                                        let summary = receipt_summary.get(date);
-
-                                        html! {
-                                        <>
-                                            { for receipts.iter().rev().map(|receipt| receipt.view(None)) }
-                                            {
-                                                if T::is_view_summary() {
-                                                    summary.unwrap().view(Some(format!("table-success")))
-                                                } else {
-                                                    html! {}
-                                                }
-                                            }
-                                        </>
-                                        }
-                                    })
-                                }
-                                </tbody>
+                                { render_thead::<T>() }
+                                { render_tbody::<T>(&receipt_map, &receipt_summary) }
                             </table>
                         </div>
                     }
                 </div>
             </div>
         </>
+    }
+}
+
+fn render_thead<T: ReceiptProps + 'static>() -> Html {
+    html! {
+    <thead class="thead-light">
+        <tr> {
+            for T::new().get_all_fields().iter().map(|(header, _)| {
+                let header_text = HEADERS.get(header).unwrap_or(header);
+                html! {
+                    <th scope="col" style="position: sticky; top: 0; background-color: white; white-space: nowrap; text-align: center;">
+                        { header_text }
+                    </th>
+                }
+            })
+        }
+        </tr>
+    </thead>
+    }
+}
+
+fn render_tbody<T: ReceiptProps + 'static>(
+    receipt_map: &UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
+    receipt_summary: &UseStateHandle<BTreeMap<NaiveDate, T>>,
+) -> Html {
+    html! {
+        <tbody> {
+            for receipt_map.iter().map(|(date, receipts)| {
+                let summary = receipt_summary.get(date);
+                html! {
+                <>
+                    { for receipts.iter().rev().map(|receipt| receipt.view(None)) }
+                    {
+                        if T::is_view_summary() {
+                            summary.unwrap().view(Some(format!("table-success")))
+                        } else {
+                            html! {}
+                        }
+                    }
+                </>
+                }
+            })
+        }
+        </tbody>
+    }
+}
+
+fn handle_file_change<T: ReceiptProps + 'static>(
+    csv_file: Option<File>,
+    file_name: UseStateHandle<String>,
+    receipt_map: UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
+    receipt_summary: UseStateHandle<BTreeMap<NaiveDate, T>>,
+) {
+    file_name.set("".to_string());
+    receipt_summary.set(BTreeMap::new());
+
+    if let Some(csv_file) = csv_file.clone() {
+        spawn_local(async move {
+            file_name.set(csv_file.name());
+            if let Err(err) = read_file(&csv_file)
+                .await
+                .and_then(|content| process_csv_content(receipt_map, receipt_summary, content))
+            {
+                console::log!(err.to_string());
+            };
+        });
     }
 }
 
