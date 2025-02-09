@@ -57,11 +57,6 @@ fn create_request(url: &str) -> Result<Request, ApiError> {
 /// - `code`: 銘柄コード (例: "7203")
 /// - 成功時: `StockData` を返す。
 /// - 失敗時: `ApiError` を返す。
-///
-/// ```rust
-/// let stock = fetch_stock_data("7203").await?;
-/// println!("{:?}", stock);
-/// ```
 pub async fn fetch_stock_data(code: &str) -> Result<StockData, ApiError> {
     let url = format!("{}/stock/{}", SHOKEN_WEB_API_URL, code);
     let json = fetch_json(&url).await?;
