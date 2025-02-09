@@ -1,29 +1,14 @@
+use crate::{models::stock::StockData, services::api, setting::STOCK_INFO_LINKS};
 use gloo::console;
-use gloo_net::http::Request;
-use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use crate::{components::Layout, env, setting::STOCK_INFO_LINKS};
-
-#[derive(Clone, PartialEq, Deserialize, Serialize, Default)]
-struct Stock {
-    pub date: String,
-    pub code: String,
-    pub name: String,
-    pub market_category: String,
-    pub industry_code_33: Option<String>,
-    pub industry_category_33: Option<String>,
-    pub industry_code_17: Option<String>,
-    pub industry_category_17: Option<String>,
-    pub size_code: Option<String>,
-    pub size_category: Option<String>,
-}
+use crate::components::Layout;
 
 #[function_component]
 pub fn Search() -> Html {
-    let stock = use_state(Stock::default);
+    let stock = use_state(StockData::default);
     let code_or_name = use_state(String::new);
 
     let on_input = {
@@ -34,13 +19,13 @@ pub fn Search() -> Html {
             let input: HtmlInputElement = e.target_unchecked_into();
             let value = input.value();
             code_or_name.set(value.clone());
-            stock.set(Stock::default());
+            stock.set(StockData::default());
 
             console::log!(format!("Input value: {value}"));
 
             let stock = stock.clone();
             spawn_local(async move {
-                match fetch_stock_data(&value).await {
+                match api::fetch_stock_data(&value).await {
                     Ok(new_stock) => stock.set(new_stock),
                     Err(err) => console::log!(&err.to_string()),
                 }
@@ -90,22 +75,6 @@ pub fn Search() -> Html {
                 </div>
             </div>
         </Layout>
-    }
-}
-
-async fn fetch_stock_data(value: &str) -> Result<Stock, String> {
-    // let url = format!("{}{}", env::SHOKEN_WEBAPI_STOCK, value);
-    let url = format!("https://shoken-webapp-api-b4a1.shuttle.app/stock/{}", value);
-    let response = Request::get(&url).send().await.map_err(|e| e.to_string())?;
-
-    if response.ok() {
-        response.json::<Stock>().await.map_err(|e| e.to_string())
-    } else {
-        Err(format!(
-            "HTTP error: {} - {}",
-            response.status(),
-            response.status_text()
-        ))
     }
 }
 
