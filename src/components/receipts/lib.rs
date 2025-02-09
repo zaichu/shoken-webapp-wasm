@@ -16,8 +16,8 @@ pub struct ReceiptTemplateProps {
 
 #[function_component]
 pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) -> Html {
-    let item_map = use_state(BTreeMap::<NaiveDate, Vec<T>>::new);
-    let item_summary = use_state(Vec::<T>::new);
+    let receipt_map = use_state(BTreeMap::<NaiveDate, Vec<T>>::new);
+    let receipt_summary = use_state(BTreeMap::<NaiveDate, T>::new);
     let csv_file = use_state(|| None::<File>);
     let file_name = use_state(|| "CSVファイルを選択してください。".to_string());
 
@@ -25,20 +25,19 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
 
     {
         let file_name = file_name.clone();
-        let item_map = item_map.clone();
-        let item_summary = item_summary.clone();
+        let receipt_map = receipt_map.clone();
+        let receipt_summary = receipt_summary.clone();
 
         use_effect_with((*csv_file).clone(), move |csv_file| {
             file_name.set("".to_string());
-            item_summary.set(Vec::<T>::new());
+            receipt_summary.set(BTreeMap::new());
 
             if let Some(csv_file) = csv_file.clone() {
                 spawn_local(async move {
                     file_name.set(csv_file.name());
-                    if let Err(err) = read_file(&csv_file)
-                        .await
-                        .and_then(|content| process_csv_content(item_map, item_summary, content))
-                    {
+                    if let Err(err) = read_file(&csv_file).await.and_then(|content| {
+                        process_csv_content(receipt_map, receipt_summary, content)
+                    }) {
                         console::log!(err.to_string());
                     };
                 });
@@ -56,7 +55,7 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
                 <input type="text" class="form-control" readonly=true value={(*file_name).clone()} />
             </div>
             <div class="mt-2">
-                <table class="table table-bordered">{ T::view_summary(&(*item_summary)) }</table>
+                <table class="table table-bordered">{ T::view_summary(&(*receipt_summary)) }</table>
             </div>
             <div class="mt-1">
                 <div class="card shadow-sm">
@@ -80,11 +79,19 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
                                     </tr>
                                 </thead>
                                 <tbody> {
-                                    for item_map.iter().map(|(_, items)| {
+                                    for receipt_map.iter().map(|(date, receipts)| {
+                                        let summary = receipt_summary.get(date);
+
                                         html! {
                                         <>
-                                            { for items.iter().rev().map(|item| item.view(None)) }
-                                            { T::get_profit_record(items).view(Some(format!("table-success"))) }
+                                            { for receipts.iter().rev().map(|receipt| receipt.view(None)) }
+                                            {
+                                                if T::is_view_summary() {
+                                                    summary.unwrap().view(Some(format!("table-success")))
+                                                } else {
+                                                    html! {}
+                                                }
+                                            }
                                         </>
                                         }
                                     })
@@ -108,31 +115,31 @@ fn on_input_callback(csv_file: UseStateHandle<Option<File>>) -> Callback<InputEv
 }
 
 fn process_csv_content<T: ReceiptProps + 'static>(
-    item_map: UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
-    item_summary: UseStateHandle<Vec<T>>,
+    receipt_map: UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
+    receipt_summary: UseStateHandle<BTreeMap<NaiveDate, T>>,
     content: Vec<u8>,
 ) -> Result<()> {
     let records = self::read_csv(content)?;
-    let new_item_map = records
+    let new_receipt_map = records
         .into_iter()
         .filter_map(|record| {
-            let item = T::from_string_record(record);
-            item.get_date().map(|date| (date, item))
+            let receipt = T::from_string_record(record);
+            receipt.get_date().map(|date| (date, receipt))
         })
         .fold(
             BTreeMap::new(),
-            |mut acc: BTreeMap<NaiveDate, Vec<T>>, (date, item)| {
-                acc.entry(date).or_default().push(item);
+            |mut acc: BTreeMap<NaiveDate, Vec<T>>, (date, receipt)| {
+                acc.entry(date).or_default().push(receipt);
                 acc
             },
         );
-    item_map.set(new_item_map.clone());
+    receipt_map.set(new_receipt_map.clone());
 
-    let new_item_summary: Vec<_> = new_item_map
+    let new_receipt_summary = new_receipt_map
         .iter()
-        .map(|(_, items)| T::get_profit_record(items))
-        .collect();
-    item_summary.set(new_item_summary);
+        .map(|(date, receipts)| (*date, T::get_profit_record(receipts)))
+        .collect::<BTreeMap<NaiveDate, T>>();
+    receipt_summary.set(new_receipt_summary);
 
     Ok(())
 }
@@ -160,12 +167,12 @@ async fn read_file(file: &File) -> Result<Vec<u8>> {
 
 pub trait ReceiptProps: Clone + Sized + PartialEq {
     fn new() -> Self;
-    fn is_view(&self) -> bool;
+    fn is_view_summary() -> bool;
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)>;
     fn get_date(&self) -> Option<NaiveDate>;
-    fn get_profit_record(items: &[Self]) -> Self;
+    fn get_profit_record(receipts: &[Self]) -> Self;
     fn from_string_record(record: StringRecord) -> Self;
-    fn view_summary(items: &[Self]) -> Html;
+    fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html;
 
     fn format_value(key: &str, value: &str) -> String {
         if YEN_FORMAT_KEYS.contains(key) {
@@ -279,10 +286,6 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
     }
 
     fn view(&self, tr_class: Option<String>) -> Html {
-        if !self.is_view() {
-            return html! {};
-        };
-
         html! {
             <tr class={tr_class}>
                 { for self.get_all_fields().iter().map(|(key, value)| {

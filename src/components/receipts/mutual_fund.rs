@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 use csv::StringRecord;
+use std::collections::BTreeMap;
 use yew::prelude::*;
 
 use crate::setting::TAX_RATE;
@@ -8,7 +9,6 @@ use super::lib::ReceiptProps;
 
 #[derive(PartialEq, Properties, Debug, Clone, Default)]
 pub struct MutualFund {
-    pub is_view: bool,
     pub trade_date: Option<NaiveDate>,                   // 約定日
     pub settlement_date: Option<NaiveDate>,              // 受渡日
     pub fund_name: Option<String>,                       // ファンド名
@@ -47,7 +47,6 @@ impl ReceiptProps for MutualFund {
             });
 
         Self {
-            is_view: true,
             trade_date: Self::parse_date(record.get(0)),
             settlement_date: Self::parse_date(record.get(1)),
             fund_name: Self::parse_string(record.get(2)),
@@ -105,17 +104,13 @@ impl ReceiptProps for MutualFund {
         ]
     }
 
-    fn get_profit_record(items: &[Self]) -> Self {
-        let item = items.first().unwrap().clone();
-        Self {
-            is_view: false,
-            ..item
-        }
+    fn get_profit_record(receipts: &[Self]) -> Self {
+        receipts.first().unwrap().clone()
     }
 
-    fn view_summary(items: &[Self]) -> Html {
+    fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html {
         let (total_realized_profit_and_loss, total_taxes, total_realized_profit_and_loss_after_tax) =
-            items.iter().fold(
+            receipt_summary.iter().map(|(_, summary)| summary).fold(
                 (0, 0, 0),
                 |(total_realized_profit_and_loss, withholding_tax, profit_and_loss), p| {
                     (
@@ -137,7 +132,7 @@ impl ReceiptProps for MutualFund {
         }
     }
 
-    fn is_view(&self) -> bool {
-        self.is_view
+    fn is_view_summary() -> bool {
+        false
     }
 }

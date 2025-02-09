@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 use csv::StringRecord;
+use std::collections::BTreeMap;
 use yew::prelude::*;
 
 use crate::setting::TAX_RATE;
@@ -95,8 +96,8 @@ impl ReceiptProps for DomesticStock {
         ]
     }
 
-    fn get_profit_record(items: &[Self]) -> Self {
-        let (specific_account_total, nisa_account_total) = items
+    fn get_profit_record(receipts: &[Self]) -> Self {
+        let (specific_account_total, nisa_account_total) = receipts
             .iter()
             .filter_map(|domestic_stock| {
                 Some((
@@ -135,9 +136,9 @@ impl ReceiptProps for DomesticStock {
         }
     }
 
-    fn view_summary(items: &[Self]) -> Html {
+    fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html {
         let (total_realized_profit_and_loss, total_taxes, total_realized_profit_and_loss_after_tax) =
-            items.iter().fold(
+            receipt_summary.iter().map(|(_, summary)| summary).fold(
                 (0, 0, 0),
                 |(total_realized_profit_and_loss, withholding_tax, profit_and_loss), p| {
                     (
@@ -159,7 +160,7 @@ impl ReceiptProps for DomesticStock {
         }
     }
 
-    fn is_view(&self) -> bool {
+    fn is_view_summary() -> bool {
         true
     }
 }
