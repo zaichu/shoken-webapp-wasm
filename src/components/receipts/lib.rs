@@ -87,17 +87,17 @@ fn render_tbody<T: ReceiptProps + 'static>(
     receipt_summary: &UseStateHandle<BTreeMap<NaiveDate, T>>,
 ) -> Html {
     html! {
-        <tbody> {
-            for receipt_map.iter().map(|(date, receipts)| {
-                let summary_view = if T::is_view_summary() {
-                    receipt_summary.get(date).map( |summary| summary.view(Some(format!("table-success"))))
-                } else {
-                    None
-                };
-                html! { for receipts.iter().rev().map(|receipt| receipt.view(None)).chain(summary_view) }
-            })
-        }
-        </tbody>
+    <tbody> {
+        for receipt_map.iter().map(|(date, receipts)| {
+            let summary_view = if T::is_view_summary() {
+                receipt_summary.get(date).map( |summary| summary.view(Some(format!("table-success"))))
+            } else {
+                None
+            };
+            html! { for receipts.iter().rev().map(|receipt| receipt.view(None)).chain(summary_view) }
+        })
+    }
+    </tbody>
     }
 }
 
