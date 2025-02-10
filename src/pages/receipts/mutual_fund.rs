@@ -3,9 +3,8 @@ use csv::StringRecord;
 use std::collections::BTreeMap;
 use yew::prelude::*;
 
-use crate::setting::TAX_RATE;
-
-use super::lib::ReceiptProps;
+use super::receipt_template::ReceiptProps;
+use crate::setting::*;
 
 #[derive(PartialEq, Properties, Debug, Clone, Default)]
 pub struct MutualFund {

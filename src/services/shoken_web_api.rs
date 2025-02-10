@@ -1,11 +1,10 @@
-use crate::models::stock::StockData;
-use crate::setting::SHOKEN_WEB_API_URL;
 use gloo::utils::format::JsValueSerdeExt;
 use thiserror::Error;
-use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Request, RequestInit, RequestMode, Response};
+
+use crate::{data::stock::StockData, setting::*};
 
 #[derive(Debug, Error)]
 pub enum ApiError {

@@ -1,4 +1,3 @@
-use crate::setting::{DATE_FORMAT_KEYS, HEADERS, NUMBER_FORMAT_KEYS, YEN_FORMAT_KEYS};
 use anyhow::{anyhow, Result};
 use chrono::NaiveDate;
 use csv::StringRecord;
@@ -8,6 +7,8 @@ use std::collections::BTreeMap;
 use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::{js_sys, File, HtmlInputElement};
 use yew::prelude::*;
+
+use crate::setting::*;
 
 #[derive(Properties, PartialEq, Debug, Clone)]
 pub struct ReceiptTemplateProps {

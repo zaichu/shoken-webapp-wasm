@@ -1,10 +1,10 @@
-use crate::{models::stock::StockData, services::api, setting::STOCK_INFO_LINKS};
 use gloo::console;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use crate::components::Layout;
+use super::layout::Layout;
+use crate::{data::stock::StockData, services::shoken_web_api, setting::*};
 
 #[function_component]
 pub fn Search() -> Html {
@@ -25,7 +25,7 @@ pub fn Search() -> Html {
 
             let stock = stock.clone();
             spawn_local(async move {
-                match api::fetch_stock_data(&value).await {
+                match shoken_web_api::fetch_stock_data(&value).await {
                     Ok(new_stock) => stock.set(new_stock),
                     Err(err) => console::log!(&err.to_string()),
                 }

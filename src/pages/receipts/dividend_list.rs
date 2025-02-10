@@ -3,7 +3,7 @@ use csv::StringRecord;
 use std::collections::BTreeMap;
 use yew::prelude::*;
 
-use super::lib::ReceiptProps;
+use super::receipt_template::ReceiptProps;
 
 #[derive(PartialEq, Properties, Debug, Clone)]
 pub struct DividendList {

@@ -1,9 +1,8 @@
 use wasm_bindgen::prelude::*;
 
 mod app;
-mod components;
+mod data;
 mod env;
-mod models;
 mod pages;
 mod services;
 mod setting;
