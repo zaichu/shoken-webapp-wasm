@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use yew::prelude::*;
 
 use super::receipt_template::ReceiptProps;
-use crate::setting::*;
+use crate::{services::parser::*, setting::*};
 
 #[derive(PartialEq, Properties, Debug, Clone)]
 pub struct DomesticStock {
@@ -84,16 +84,16 @@ impl ReceiptProps for DomesticStock {
 
     fn new_from_string_record(record: StringRecord) -> Self {
         Self {
-            trade_date: Self::parse_date(record.get(0)),
-            settlement_date: Self::parse_date(record.get(1)),
-            security_code: Self::parse_string(record.get(2)),
-            security_name: Self::parse_string(record.get(3)),
-            account: Self::parse_string(record.get(4)),
-            shares: Self::parse_i32(record.get(7)),
-            asked_price: Self::parse_f64(record.get(8)),
-            proceeds: Self::parse_i32(record.get(9)),
-            purchase_price: Self::parse_f64(record.get(10)),
-            realized_profit_and_loss: Self::parse_i32(record.get(11)),
+            trade_date: record.get(0).try_parse_date(),
+            settlement_date: record.get(1).try_parse_date(),
+            security_code: record.get(2).try_parse_string(),
+            security_name: record.get(3).try_parse_string(),
+            account: record.get(4).try_parse_string(),
+            shares: record.get(7).try_parse_num(),
+            asked_price: record.get(8).try_parse_num(),
+            proceeds: record.get(9).try_parse_num(),
+            purchase_price: record.get(10).try_parse_num(),
+            realized_profit_and_loss: record.get(11).try_parse_num(),
             total_realized_profit_and_loss: None,
             total_taxes: None,
             total_realized_profit_and_loss_after_tax: None,

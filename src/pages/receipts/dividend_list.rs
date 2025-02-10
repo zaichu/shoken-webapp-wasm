@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use yew::prelude::*;
 
 use super::receipt_template::ReceiptProps;
+use crate::services::parser::*;
 
 #[derive(PartialEq, Properties, Debug, Clone)]
 pub struct DividendList {
@@ -88,17 +89,17 @@ impl ReceiptProps for DividendList {
 
     fn new_from_string_record(record: StringRecord) -> Self {
         DividendList {
-            settlement_date: Self::parse_date(record.get(0)),
-            product: Self::parse_string(record.get(1)),
-            account: Self::parse_string(record.get(2)),
-            security_code: Self::parse_string(record.get(3)),
-            security_name: Self::parse_string(record.get(4)),
-            currency: Self::parse_string(record.get(5)),
-            unit_price: Self::parse_string(record.get(6)),
-            shares: Self::parse_i32(record.get(7)),
-            dividends_before_tax: Self::parse_i32(record.get(8)),
-            taxes: Self::parse_i32(record.get(9)),
-            net_amount_received: Self::parse_i32(record.get(10)),
+            settlement_date: record.get(0).try_parse_date(),
+            product: record.get(1).try_parse_string(),
+            account: record.get(2).try_parse_string(),
+            security_code: record.get(3).try_parse_string(),
+            security_name: record.get(4).try_parse_string(),
+            currency: record.get(5).try_parse_string(),
+            unit_price: record.get(6).try_parse_string(),
+            shares: record.get(7).try_parse_num(),
+            dividends_before_tax: record.get(8).try_parse_num(),
+            taxes: record.get(9).try_parse_num(),
+            net_amount_received: record.get(10).try_parse_num(),
             total_dividends_before_tax: None,
             total_taxes: None,
             total_net_amount_received: None,
