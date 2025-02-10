@@ -6,9 +6,7 @@ use url::Url;
 
 use crate::env;
 
-#[allow(dead_code)]
 static OAUTH2_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
-#[allow(dead_code)]
 static OAUTH2_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 
 #[derive(Error, Debug)]
@@ -19,7 +17,6 @@ pub enum OAuthError {
     _ClientCreationFailed,
 }
 
-#[allow(dead_code)]
 fn create_oauth_client() -> Result<BasicClient, OAuthError> {
     let client_id = ClientId::new(env::SHOKEN_WEBAPI_GOOGLE_OAUTH_CLIENT_ID.to_string());
     let client_secret_id =
@@ -35,7 +32,6 @@ fn create_oauth_client() -> Result<BasicClient, OAuthError> {
     )
 }
 
-#[allow(dead_code)]
 pub async fn google_oauth() -> Result<(Url, CsrfToken), OAuthError> {
     let client = create_oauth_client()?;
     Ok(client
