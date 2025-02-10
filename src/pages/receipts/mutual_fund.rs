@@ -28,7 +28,11 @@ impl ReceiptProps for MutualFund {
         MutualFund::default()
     }
 
-    fn from_string_record(record: StringRecord) -> Self {
+    fn new_summary(receipts: &[Self]) -> Self {
+        receipts.first().unwrap().clone()
+    }
+
+    fn new_from_string_record(record: StringRecord) -> Self {
         let tmp_account = Self::parse_string(record.get(4)).unwrap();
         let tmp_realized_profit_and_loss = Self::parse_i32(record.get(11));
         let (taxes, tmp_realized_profit_and_loss_after_tax) =
@@ -103,10 +107,6 @@ impl ReceiptProps for MutualFund {
         ]
     }
 
-    fn get_profit_record(receipts: &[Self]) -> Self {
-        receipts.first().unwrap().clone()
-    }
-
     fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html {
         let (total_realized_profit_and_loss, total_taxes, total_realized_profit_and_loss_after_tax) =
             receipt_summary.iter().map(|(_, summary)| summary).fold(
@@ -123,15 +123,15 @@ impl ReceiptProps for MutualFund {
         html! {
             <tbody>
                 <tr>
-                    { Self::render_td_tr_summary("total_realized_profit_and_loss", total_realized_profit_and_loss) }
-                    { Self::render_td_tr_summary("total_taxes", total_taxes as i32) }
-                    { Self::render_td_tr_summary("total_realized_profit_and_loss_after_tax", total_realized_profit_and_loss_after_tax) }
+                    { Self::render_summary_th_td("total_realized_profit_and_loss", total_realized_profit_and_loss) }
+                    { Self::render_summary_th_td("total_taxes", total_taxes as i32) }
+                    { Self::render_summary_th_td("total_realized_profit_and_loss_after_tax", total_realized_profit_and_loss_after_tax) }
                 </tr>
             </tbody>
         }
     }
 
-    fn is_view_summary() -> bool {
+    fn is_view_summary_table() -> bool {
         false
     }
 }

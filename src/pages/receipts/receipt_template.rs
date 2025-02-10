@@ -90,7 +90,7 @@ fn render_tbody<T: ReceiptProps + 'static>(
     html! {
     <tbody> {
         for receipt_map.iter().map(|(date, receipts)| {
-            let summary_view = if T::is_view_summary() {
+            let summary_view = if T::is_view_summary_table() {
                 receipt_summary.get(date).map( |summary| summary.view(Some(format!("table-success"))))
             } else {
                 None
@@ -141,7 +141,7 @@ fn process_csv_content<T: ReceiptProps + 'static>(
     let new_receipt_map = records
         .into_iter()
         .filter_map(|record| {
-            let receipt = T::from_string_record(record);
+            let receipt = T::new_from_string_record(record);
             receipt.get_date().map(|date| (date, receipt))
         })
         .fold(
@@ -155,7 +155,7 @@ fn process_csv_content<T: ReceiptProps + 'static>(
 
     let new_receipt_summary = new_receipt_map
         .iter()
-        .map(|(date, receipts)| (*date, T::get_profit_record(receipts)))
+        .map(|(date, receipts)| (*date, T::new_summary(receipts)))
         .collect::<BTreeMap<NaiveDate, T>>();
     receipt_summary.set(new_receipt_summary);
 
@@ -185,12 +185,33 @@ async fn read_file(file: &File) -> Result<Vec<u8>> {
 
 pub trait ReceiptProps: Clone + Sized + PartialEq {
     fn new() -> Self;
-    fn is_view_summary() -> bool;
+    fn new_summary(receipts: &[Self]) -> Self;
+    fn new_from_string_record(record: StringRecord) -> Self;
+
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)>;
     fn get_date(&self) -> Option<NaiveDate>;
-    fn get_profit_record(receipts: &[Self]) -> Self;
-    fn from_string_record(record: StringRecord) -> Self;
+    fn is_view_summary_table() -> bool;
     fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html;
+    fn view(&self, tr_class: Option<String>) -> Html {
+        html! {
+            <tr class={tr_class}>
+                { for self.get_all_fields().iter().map(|(key, value)| {
+                    let value = value.as_deref().unwrap_or("");
+                    let value = Self::format_value(key, value);
+                    let style = "overflow-wrap: break-word; white-space: normal;";
+                    let mut class = "text-nowrap".to_string();
+                    if value.starts_with("¥ -") {
+                        class = format!("{} text-danger", class);
+                    }
+                    html! {
+                        <td class={class} style={style}>
+                            {value}
+                        </td>
+                    }
+                })}
+            </tr>
+        }
+    }
 
     fn format_value(key: &str, value: &str) -> String {
         if YEN_FORMAT_KEYS.contains(key) {
@@ -261,10 +282,7 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
         match num_str {
             Some(s) => match s.replace(",", "").parse::<i32>() {
                 Ok(n) => Some(n),
-                Err(e) => {
-                    println!("Failed to parse integer '{}': {}", s, e);
-                    None
-                }
+                Err(_) => None,
             },
             None => None,
         }
@@ -274,10 +292,7 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
         match num_str {
             Some(s) => match s.replace(",", "").parse::<u32>() {
                 Ok(n) => Some(n),
-                Err(e) => {
-                    println!("Failed to parse integer '{}': {}", s, e);
-                    None
-                }
+                Err(_) => None,
             },
             None => None,
         }
@@ -287,10 +302,7 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
         match num_str {
             Some(s) => match s.replace(",", "").parse::<f64>() {
                 Ok(n) => Some(n),
-                Err(e) => {
-                    println!("Failed to parse float '{}': {}", s, e);
-                    None
-                }
+                Err(_) => None,
             },
             None => None,
         }
@@ -303,28 +315,7 @@ pub trait ReceiptProps: Clone + Sized + PartialEq {
         }
     }
 
-    fn view(&self, tr_class: Option<String>) -> Html {
-        html! {
-            <tr class={tr_class}>
-                { for self.get_all_fields().iter().map(|(key, value)| {
-                    let value = value.as_deref().unwrap_or("");
-                    let value = Self::format_value(key, value);
-                    let style = "overflow-wrap: break-word; white-space: normal;";
-                    let mut class = "text-nowrap".to_string();
-                    if value.starts_with("¥ -") {
-                        class = format!("{} text-danger", class);
-                    }
-                    html! {
-                        <td class={class} style={style}>
-                            {value}
-                        </td>
-                    }
-                })}
-            </tr>
-        }
-    }
-
-    fn render_td_tr_summary(key: &str, value: i32) -> Html {
+    fn render_summary_th_td(key: &str, value: i32) -> Html {
         let style = "max-width: 30px;";
         let mut class = "text-nowrap".to_string();
         let value = &format!("{value}");

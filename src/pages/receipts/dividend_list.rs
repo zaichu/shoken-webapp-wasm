@@ -43,46 +43,7 @@ impl ReceiptProps for DividendList {
         }
     }
 
-    fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)> {
-        vec![
-            (
-                "settlement_date",
-                self.settlement_date.map(|d| d.to_string()),
-            ),
-            ("product", self.product.clone()),
-            ("account", self.account.clone()),
-            ("security_code", self.security_code.clone()),
-            ("security_name", self.security_name.clone()),
-            // ("currency", self.currency.clone()),
-            ("unit_price", self.unit_price.clone()),
-            ("shares", self.shares.map(|s| s.to_string())),
-            (
-                "dividends_before_tax",
-                self.dividends_before_tax.map(|t| t.to_string()),
-            ),
-            ("taxes", self.taxes.map(|t| t.to_string())),
-            (
-                "net_amount_received",
-                self.net_amount_received.map(|t| t.to_string()),
-            ),
-            (
-                "total_dividends_before_tax",
-                self.total_dividends_before_tax.map(|t| t.to_string()),
-            ),
-            ("total_taxes", self.total_taxes.map(|t| t.to_string())),
-            (
-                "total_net_amount_received",
-                self.total_net_amount_received.map(|t| t.to_string()),
-            ),
-        ]
-    }
-
-    fn get_date(&self) -> Option<NaiveDate> {
-        let date = self.settlement_date.unwrap();
-        NaiveDate::from_ymd_opt(date.year(), date.month(), 1)
-    }
-
-    fn get_profit_record(receipts: &[Self]) -> Self {
+    fn new_summary(receipts: &[Self]) -> Self {
         let (total_dividends_before_tax, total_taxes, total_net_amount_received) =
             receipts.iter().fold(
                 (0, 0, 0),
@@ -125,7 +86,7 @@ impl ReceiptProps for DividendList {
         }
     }
 
-    fn from_string_record(record: StringRecord) -> Self {
+    fn new_from_string_record(record: StringRecord) -> Self {
         DividendList {
             settlement_date: Self::parse_date(record.get(0)),
             product: Self::parse_string(record.get(1)),
@@ -144,6 +105,45 @@ impl ReceiptProps for DividendList {
         }
     }
 
+    fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)> {
+        vec![
+            (
+                "settlement_date",
+                self.settlement_date.map(|d| d.to_string()),
+            ),
+            ("product", self.product.clone()),
+            ("account", self.account.clone()),
+            ("security_code", self.security_code.clone()),
+            ("security_name", self.security_name.clone()),
+            // ("currency", self.currency.clone()),
+            ("unit_price", self.unit_price.clone()),
+            ("shares", self.shares.map(|s| s.to_string())),
+            (
+                "dividends_before_tax",
+                self.dividends_before_tax.map(|t| t.to_string()),
+            ),
+            ("taxes", self.taxes.map(|t| t.to_string())),
+            (
+                "net_amount_received",
+                self.net_amount_received.map(|t| t.to_string()),
+            ),
+            (
+                "total_dividends_before_tax",
+                self.total_dividends_before_tax.map(|t| t.to_string()),
+            ),
+            ("total_taxes", self.total_taxes.map(|t| t.to_string())),
+            (
+                "total_net_amount_received",
+                self.total_net_amount_received.map(|t| t.to_string()),
+            ),
+        ]
+    }
+
+    fn get_date(&self) -> Option<NaiveDate> {
+        let date = self.settlement_date.unwrap();
+        NaiveDate::from_ymd_opt(date.year(), date.month(), 1)
+    }
+
     fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html {
         let (total_dividends_before_tax, total_taxes, total_net_amount_received) =
             receipt_summary.iter().map(|(_, summary)| summary).fold(
@@ -160,15 +160,15 @@ impl ReceiptProps for DividendList {
         html! {
             <tbody>
                 <tr>
-                    { Self::render_td_tr_summary("total_dividends_before_tax", total_dividends_before_tax) }
-                    { Self::render_td_tr_summary("total_taxes", total_taxes) }
-                    { Self::render_td_tr_summary("total_net_amount_received", total_net_amount_received) }
+                    { Self::render_summary_th_td("total_dividends_before_tax", total_dividends_before_tax) }
+                    { Self::render_summary_th_td("total_taxes", total_taxes) }
+                    { Self::render_summary_th_td("total_net_amount_received", total_net_amount_received) }
                 </tr>
             </tbody>
         }
     }
 
-    fn is_view_summary() -> bool {
+    fn is_view_summary_table() -> bool {
         true
     }
 }
