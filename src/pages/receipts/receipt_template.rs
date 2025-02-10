@@ -16,7 +16,7 @@ pub struct ReceiptTemplateProps {
 }
 
 #[function_component]
-pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) -> Html {
+pub fn ReceiptTemplate<T: ReceiptProps>(props: &ReceiptTemplateProps) -> Html {
     let receipt_map = use_state(BTreeMap::<NaiveDate, Vec<T>>::new);
     let receipt_summary = use_state(BTreeMap::<NaiveDate, T>::new);
     let csv_file = use_state(|| None::<File>);
@@ -65,7 +65,7 @@ pub fn ReceiptTemplate<T: ReceiptProps + 'static>(props: &ReceiptTemplateProps) 
     }
 }
 
-fn render_thead<T: ReceiptProps + 'static>() -> Html {
+fn render_thead<T: ReceiptProps>() -> Html {
     html! {
     <thead class="thead-light">
         <tr> {
@@ -83,7 +83,7 @@ fn render_thead<T: ReceiptProps + 'static>() -> Html {
     }
 }
 
-fn render_tbody<T: ReceiptProps + 'static>(
+fn render_tbody<T: ReceiptProps>(
     receipt_map: &UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
     receipt_summary: &UseStateHandle<BTreeMap<NaiveDate, T>>,
 ) -> Html {
@@ -102,7 +102,7 @@ fn render_tbody<T: ReceiptProps + 'static>(
     }
 }
 
-fn handle_file_change<T: ReceiptProps + 'static>(
+fn handle_file_change<T: ReceiptProps>(
     csv_file: Option<File>,
     file_name: UseStateHandle<String>,
     receipt_map: UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
@@ -132,7 +132,7 @@ fn on_input_callback(csv_file: UseStateHandle<Option<File>>) -> Callback<InputEv
     })
 }
 
-fn process_csv_content<T: ReceiptProps + 'static>(
+fn process_csv_content<T: ReceiptProps>(
     receipt_map: UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
     receipt_summary: UseStateHandle<BTreeMap<NaiveDate, T>>,
     content: Vec<u8>,
@@ -183,7 +183,7 @@ async fn read_file(file: &File) -> Result<Vec<u8>> {
     Ok(js_sys::Uint8Array::new(&array_buffer).to_vec())
 }
 
-pub trait ReceiptProps: Clone + Sized + PartialEq {
+pub trait ReceiptProps: Clone + Sized + PartialEq + 'static {
     fn new() -> Self;
     fn new_summary(receipts: &[Self]) -> Self;
     fn new_from_string_record(record: StringRecord) -> Self;

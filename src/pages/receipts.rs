@@ -1,4 +1,4 @@
-use strum::EnumMessage;
+use strum::{EnumIter, EnumMessage, IntoEnumIterator};
 use yew::prelude::*;
 
 mod dividend_list;
@@ -9,11 +9,11 @@ mod receipt_template;
 use dividend_list::DividendList;
 use domestic_stock::DomesticStock;
 use mutual_fund::MutualFund;
-use receipt_template::ReceiptTemplate;
+use receipt_template::{ReceiptProps, ReceiptTemplate};
 
 use super::layout::Layout;
 
-#[derive(Clone, PartialEq, Eq, Debug, EnumMessage, Copy)]
+#[derive(Clone, PartialEq, Eq, Debug, EnumMessage, Copy, EnumIter)]
 enum ReceiptsType {
     #[strum(message = "配当金")]
     Dividend,
@@ -41,16 +41,14 @@ pub fn Receipts() -> Html {
         <Layout>
             <nav class="nav nav-tabs">
                 <ul class="nav nav-tabs">
-                    {render_nav_item(&selected_type, ReceiptsType::Dividend, &on_click)}
-                    {render_nav_item(&selected_type, ReceiptsType::DomesticStock, &on_click)}
-                    {render_nav_item(&selected_type, ReceiptsType::MutualFund, &on_click)}
+                    { ReceiptsType::iter().map(|t| render_nav_item(&selected_type, t, &on_click)).collect::<Html>()}
                 </ul>
             </nav>
             <div class="mt-4"> {
                 match *selected_type {
-                    ReceiptsType::Dividend =>      html! { <ReceiptTemplate::<DividendList>  name={ name } /> },
-                    ReceiptsType::DomesticStock => html! { <ReceiptTemplate::<DomesticStock> name={ name } /> },
-                    ReceiptsType::MutualFund =>    html! { <ReceiptTemplate::<MutualFund> name={ name } /> },
+                    ReceiptsType::Dividend =>      { render_receipt_template::<DividendList>(name) },
+                    ReceiptsType::DomesticStock => { render_receipt_template::<DomesticStock>(name) },
+                    ReceiptsType::MutualFund =>    { render_receipt_template::<MutualFund>(name) },
                 }}
             </div>
         </Layout>
@@ -72,4 +70,8 @@ fn render_nav_item(
             </button>
         </li>
     }
+}
+
+fn render_receipt_template<T: ReceiptProps>(name: &str) -> Html {
+    html! { <ReceiptTemplate::<T> name={ name.to_string() } /> }
 }
