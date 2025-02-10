@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use yew::prelude::*;
 
 use super::receipt_template::ReceiptProps;
-use crate::setting::*;
+use crate::{services::parser::*, setting::*};
 
 #[derive(PartialEq, Properties, Debug, Clone, Default)]
 pub struct MutualFund {
@@ -28,9 +28,13 @@ impl ReceiptProps for MutualFund {
         MutualFund::default()
     }
 
-    fn from_string_record(record: StringRecord) -> Self {
-        let tmp_account = Self::parse_string(record.get(4)).unwrap();
-        let tmp_realized_profit_and_loss = Self::parse_i32(record.get(11));
+    fn new_summary(receipts: &[Self]) -> Self {
+        receipts.first().unwrap().clone()
+    }
+
+    fn new_from_string_record(record: StringRecord) -> Self {
+        let tmp_account = record.get(4).try_parse_string().unwrap();
+        let tmp_realized_profit_and_loss = record.get(11).try_parse_num();
         let (taxes, tmp_realized_profit_and_loss_after_tax) =
             tmp_realized_profit_and_loss.map_or((None, None), |profit| {
                 if profit > 0 {
@@ -46,16 +50,16 @@ impl ReceiptProps for MutualFund {
             });
 
         Self {
-            trade_date: Self::parse_date(record.get(0)),
-            settlement_date: Self::parse_date(record.get(1)),
-            fund_name: Self::parse_string(record.get(2)),
-            dividends: Self::parse_string(record.get(3)),
+            trade_date: record.get(0).try_parse_date(),
+            settlement_date: record.get(1).try_parse_date(),
+            fund_name: record.get(2).try_parse_string(),
+            dividends: record.get(3).try_parse_string(),
             account: Some(tmp_account),
-            shares: Self::parse_u32(record.get(6)),
-            exchange_rate: Self::parse_u32(record.get(7)),
-            cancellation_unit_price_yen: Self::parse_u32(record.get(8)),
-            cancellation_amount_yen: Self::parse_u32(record.get(9)),
-            average_acquisition_price_yen: Self::parse_f64(record.get(10)),
+            shares: record.get(6).try_parse_num(),
+            exchange_rate: record.get(7).try_parse_num(),
+            cancellation_unit_price_yen: record.get(8).try_parse_num(),
+            cancellation_amount_yen: record.get(9).try_parse_num(),
+            average_acquisition_price_yen: record.get(10).try_parse_num(),
             realized_profit_and_loss: tmp_realized_profit_and_loss,
             taxes: taxes,
             realized_profit_and_loss_after_tax: tmp_realized_profit_and_loss_after_tax,
@@ -103,10 +107,6 @@ impl ReceiptProps for MutualFund {
         ]
     }
 
-    fn get_profit_record(receipts: &[Self]) -> Self {
-        receipts.first().unwrap().clone()
-    }
-
     fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html {
         let (total_realized_profit_and_loss, total_taxes, total_realized_profit_and_loss_after_tax) =
             receipt_summary.iter().map(|(_, summary)| summary).fold(
@@ -123,15 +123,15 @@ impl ReceiptProps for MutualFund {
         html! {
             <tbody>
                 <tr>
-                    { Self::render_td_tr_summary("total_realized_profit_and_loss", total_realized_profit_and_loss) }
-                    { Self::render_td_tr_summary("total_taxes", total_taxes as i32) }
-                    { Self::render_td_tr_summary("total_realized_profit_and_loss_after_tax", total_realized_profit_and_loss_after_tax) }
+                    { Self::render_summary_th_td("total_realized_profit_and_loss", total_realized_profit_and_loss) }
+                    { Self::render_summary_th_td("total_taxes", total_taxes as i32) }
+                    { Self::render_summary_th_td("total_realized_profit_and_loss_after_tax", total_realized_profit_and_loss_after_tax) }
                 </tr>
             </tbody>
         }
     }
 
-    fn is_view_summary() -> bool {
+    fn is_view_summary_table() -> bool {
         false
     }
 }
