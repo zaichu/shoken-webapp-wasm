@@ -1,15 +1,11 @@
-use gloo::console;
-use web_sys::window;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::app::Route;
-
-use super::{/* handlers::oauth_google::google_oauth, */ UserInfo};
+use crate::{app::Route, data::use_info::UserInfo};
 
 #[function_component]
 pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
-    let user_info = use_context::<UserInfo>();
+    let _user_info = use_context::<UserInfo>();
     html! {
         <>
             // { render_auth_component(user_info) }

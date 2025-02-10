@@ -1,13 +1,14 @@
-use crate::{
-    components::UserInfo,
-    pages::{Home, Receipts, Search},
-};
 use gloo::console;
 use url::Url;
 use wasm_bindgen::JsValue;
 use web_sys::{window, Window};
 use yew::prelude::*;
 use yew_router::prelude::*;
+
+use crate::{
+    data::use_info::UserInfo,
+    pages::{home::Home, receipts::Receipts, search::Search},
+};
 
 #[derive(Clone, Routable, PartialEq)]
 pub enum Route {

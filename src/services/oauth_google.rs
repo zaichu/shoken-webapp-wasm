@@ -1,3 +1,4 @@
+/*
 use oauth2::{
     basic::BasicClient, AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope, TokenUrl,
 };
@@ -40,3 +41,4 @@ pub async fn google_oauth() -> Result<(Url, CsrfToken), OAuthError> {
         .add_scope(Scope::new("profile".to_string()))
         .url())
 }
+ */

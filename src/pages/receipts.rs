@@ -1,16 +1,20 @@
 use strum::EnumMessage;
 use yew::prelude::*;
 
-use crate::components::{
-    receipts::{
-        dividend_list::DividendList, domestic_stock::DomesticStock, lib::ReceiptTemplate,
-        mutual_fund::MutualFund,
-    },
-    Layout,
-};
+mod dividend_list;
+mod domestic_stock;
+mod mutual_fund;
+mod receipt_template;
+
+use dividend_list::DividendList;
+use domestic_stock::DomesticStock;
+use mutual_fund::MutualFund;
+use receipt_template::ReceiptTemplate;
+
+use super::layout::Layout;
 
 #[derive(Clone, PartialEq, Eq, Debug, EnumMessage, Copy)]
-pub enum ReceiptsType {
+enum ReceiptsType {
     #[strum(message = "配当金")]
     Dividend,
 

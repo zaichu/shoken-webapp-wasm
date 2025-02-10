@@ -1,8 +1,9 @@
 use chrono::{Datelike, NaiveDate};
 use csv::StringRecord;
+use std::collections::BTreeMap;
 use yew::prelude::*;
 
-use super::lib::ReceiptProps;
+use super::receipt_template::ReceiptProps;
 
 #[derive(PartialEq, Properties, Debug, Clone)]
 pub struct DividendList {
@@ -81,9 +82,9 @@ impl ReceiptProps for DividendList {
         NaiveDate::from_ymd_opt(date.year(), date.month(), 1)
     }
 
-    fn get_profit_record(items: &[Self]) -> Self {
+    fn get_profit_record(receipts: &[Self]) -> Self {
         let (total_dividends_before_tax, total_taxes, total_net_amount_received) =
-            items.iter().fold(
+            receipts.iter().fold(
                 (0, 0, 0),
                 |(total_dividends_before_tax, total_taxes, total_net_amount_received), dividend| {
                     if let (Some(dividends_before_tax), Some(taxes), Some(net_amount_received)) = (
@@ -143,9 +144,9 @@ impl ReceiptProps for DividendList {
         }
     }
 
-    fn view_summary(items: &[Self]) -> Html {
+    fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html {
         let (total_dividends_before_tax, total_taxes, total_net_amount_received) =
-            items.iter().fold(
+            receipt_summary.iter().map(|(_, summary)| summary).fold(
                 (0, 0, 0),
                 |(total_dividends_before_tax, total_taxes, total_net_amount_received), dividend| {
                     (
@@ -167,7 +168,7 @@ impl ReceiptProps for DividendList {
         }
     }
 
-    fn is_view(&self) -> bool {
+    fn is_view_summary() -> bool {
         true
     }
 }
