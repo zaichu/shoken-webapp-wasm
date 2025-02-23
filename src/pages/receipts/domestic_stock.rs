@@ -166,7 +166,7 @@ impl ReceiptProps for DomesticStock {
         }
     }
 
-    fn search(&self, query: String) -> bool {
+    fn search(&self, query: &str) -> bool {
         self.security_code.as_deref().unwrap_or_default() == query
     }
 }

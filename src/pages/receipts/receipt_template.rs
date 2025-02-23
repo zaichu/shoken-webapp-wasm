@@ -102,32 +102,33 @@ fn render_thead<T: ReceiptProps>() -> Html {
 }
 
 fn render_tbody<T: ReceiptProps>(receipts: Vec<T>, query: Option<String>) -> Html {
-    let receipts_view_map = receipts
-        .into_iter()
-        .filter_map(|receipt| match &query {
-            Some(q) => receipt.search(q.clone()).then(|| (q.to_string(), receipt)),
-            None => receipt.get_date().map(|date| (date.to_string(), receipt)),
-        })
-        .fold(
-            BTreeMap::new(),
-            |mut acc: BTreeMap<String, Vec<T>>, (key, receipt)| {
-                acc.entry(key).or_default().push(receipt);
-                acc
-            },
-        )
-        .into_iter()
-        .flat_map(|(_, receipts)| {
-            let mut views: Vec<Html> = receipts.iter().map(|r| r.view(None)).collect();
-            if let Some(summary) = T::new_summary(&receipts) {
-                views.push(summary.view(Some(format!("table-success"))));
-            }
-            views
-        })
-        .collect::<Vec<VNode>>();
-
     html! {
-        <tbody>
-            { for receipts_view_map }
+        <tbody> {
+            receipts
+                .into_iter()
+                .filter_map(|receipt| {
+                    match &query {
+                        Some(q) => receipt.search(q).then(|| (q.to_string(), receipt)),
+                        None => receipt.get_date().map(|date| (date.to_string(), receipt)),
+                    }
+                })
+                .fold(
+                    BTreeMap::new(),
+                    |mut acc: BTreeMap<String, Vec<T>>, (key, receipt)| {
+                        acc.entry(key).or_default().push(receipt);
+                        acc
+                    },
+                )
+                .into_iter()
+                .flat_map(|(_, receipts)| {
+                    let mut views: Vec<Html> = receipts.iter().map(|r| r.view(None)).collect();
+                    if let Some(summary) = T::new_summary(&receipts) {
+                        views.push(summary.view(Some(format!("table-success"))));
+                    }
+                    views
+                })
+                .collect::<Vec<VNode>>()
+        }
         </tbody>
     }
 }
@@ -135,16 +136,16 @@ fn render_tbody<T: ReceiptProps>(receipts: Vec<T>, query: Option<String>) -> Htm
 fn handle_csv_file_change<T: ReceiptProps>(
     csv_file: Option<File>,
     file_name: UseStateHandle<String>,
-    receipt_map: UseStateHandle<Vec<T>>,
+    receipts: UseStateHandle<Vec<T>>,
 ) {
     file_name.set("".to_string());
 
-    if let Some(csv_file) = csv_file.clone() {
+    if let Some(csv_file) = csv_file {
         spawn_local(async move {
             file_name.set(csv_file.name());
             if let Err(err) = csv_reader::read_file(&csv_file)
                 .await
-                .and_then(|content| process_csv_content(receipt_map, content))
+                .and_then(|content| process_csv_content(receipts, content))
             {
                 console::log!(err.to_string());
             };
@@ -171,16 +172,16 @@ fn on_input_security_code_callback(
 }
 
 fn process_csv_content<T: ReceiptProps>(
-    receipt_map: UseStateHandle<Vec<T>>,
+    receipts: UseStateHandle<Vec<T>>,
     content: Vec<u8>,
 ) -> Result<(), csv_reader::CSVError> {
     let records = csv_reader::read_csv(content)?;
-    let new_receipt_map: Vec<_> = records
+    let new_receipts: Vec<_> = records
         .into_iter()
         .map(|record| T::new_from_string_record(record))
         .rev()
         .collect();
-    receipt_map.set(new_receipt_map.clone());
+    receipts.set(new_receipts);
 
     Ok(())
 }
@@ -195,7 +196,7 @@ pub trait ReceiptProps: Clone + Sized + PartialEq + Default + 'static {
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)>;
     fn get_date(&self) -> Option<NaiveDate>;
 
-    fn search(&self, _: String) -> bool {
+    fn search(&self, _: &str) -> bool {
         true
     }
 
