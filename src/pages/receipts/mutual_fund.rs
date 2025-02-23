@@ -1,6 +1,5 @@
 use chrono::NaiveDate;
 use csv::StringRecord;
-use std::collections::BTreeMap;
 use yew::prelude::*;
 
 use super::receipt_template::ReceiptProps;
@@ -26,10 +25,6 @@ pub struct MutualFund {
 impl ReceiptProps for MutualFund {
     fn new() -> Self {
         MutualFund::default()
-    }
-
-    fn new_summary(receipts: &[Self]) -> Self {
-        receipts.first().unwrap().clone()
     }
 
     fn new_from_string_record(record: StringRecord) -> Self {
@@ -107,9 +102,9 @@ impl ReceiptProps for MutualFund {
         ]
     }
 
-    fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html {
+    fn view_summary(receipts: Vec<Self>) -> Html {
         let (total_realized_profit_and_loss, total_taxes, total_realized_profit_and_loss_after_tax) =
-            receipt_summary.iter().map(|(_, summary)| summary).fold(
+            receipts.iter().fold(
                 (0, 0, 0),
                 |(total_realized_profit_and_loss, withholding_tax, profit_and_loss), p| {
                     (
@@ -131,7 +126,7 @@ impl ReceiptProps for MutualFund {
         }
     }
 
-    fn is_view_summary_table() -> bool {
+    fn is_view_search() -> bool {
         false
     }
 }

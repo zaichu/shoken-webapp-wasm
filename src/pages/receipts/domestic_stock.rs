@@ -1,12 +1,12 @@
 use chrono::NaiveDate;
 use csv::StringRecord;
-use std::collections::BTreeMap;
+use itertools::Itertools;
 use yew::prelude::*;
 
 use super::receipt_template::ReceiptProps;
 use crate::{services::parser::*, setting::*};
 
-#[derive(PartialEq, Properties, Debug, Clone)]
+#[derive(PartialEq, Properties, Debug, Clone, Default)]
 pub struct DomesticStock {
     pub trade_date: Option<NaiveDate>,                         // 約定日
     pub settlement_date: Option<NaiveDate>,                    // 受渡日
@@ -42,7 +42,7 @@ impl ReceiptProps for DomesticStock {
         }
     }
 
-    fn new_summary(receipts: &[Self]) -> Self {
+    fn new_summary(receipts: &[Self]) -> Option<Self> {
         let (specific_account_total, nisa_account_total) = receipts
             .iter()
             .filter_map(|domestic_stock| {
@@ -65,7 +65,7 @@ impl ReceiptProps for DomesticStock {
         let total_taxes = ((specific_account_total.max(0) as f64) * TAX_RATE) as u32;
         let total = specific_account_total + nisa_account_total;
 
-        Self {
+        Some(Self {
             trade_date: None,
             settlement_date: None,
             security_code: None,
@@ -79,7 +79,7 @@ impl ReceiptProps for DomesticStock {
             total_realized_profit_and_loss: Some(total),
             total_taxes: Some(total_taxes),
             total_realized_profit_and_loss_after_tax: Some(total - total_taxes as i32),
-        }
+        })
     }
 
     fn new_from_string_record(record: StringRecord) -> Self {
@@ -135,18 +135,25 @@ impl ReceiptProps for DomesticStock {
         ]
     }
 
-    fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html {
+    fn view_summary(receipts: Vec<Self>) -> Html {
         let (total_realized_profit_and_loss, total_taxes, total_realized_profit_and_loss_after_tax) =
-            receipt_summary.iter().map(|(_, summary)| summary).fold(
-                (0, 0, 0),
-                |(total_realized_profit_and_loss, withholding_tax, profit_and_loss), p| {
-                    (
-                        total_realized_profit_and_loss + p.total_realized_profit_and_loss.unwrap(),
-                        withholding_tax + p.total_taxes.unwrap(),
-                        profit_and_loss + p.total_realized_profit_and_loss_after_tax.unwrap(),
-                    )
-                },
-            );
+            receipts
+                .into_iter()
+                .chunk_by(|receipt| receipt.get_date().expect("get_date error"))
+                .into_iter()
+                .filter_map(|(_, group)| Self::new_summary(&group.collect::<Vec<_>>()))
+                .fold(
+                    (0, 0, 0),
+                    |(total_realized_profit_and_loss, withholding_tax, profit_and_loss), p| {
+                        (
+                            total_realized_profit_and_loss
+                                + p.total_realized_profit_and_loss.unwrap_or(0),
+                            withholding_tax + p.total_taxes.unwrap_or(0),
+                            profit_and_loss
+                                + p.total_realized_profit_and_loss_after_tax.unwrap_or(0),
+                        )
+                    },
+                );
 
         html! {
             <tbody>
@@ -159,7 +166,7 @@ impl ReceiptProps for DomesticStock {
         }
     }
 
-    fn is_view_summary_table() -> bool {
-        true
+    fn search(&self, query: String) -> bool {
+        self.security_code.as_deref().unwrap_or_default() == query
     }
 }

@@ -1,12 +1,11 @@
 use chrono::{Datelike, NaiveDate};
 use csv::StringRecord;
-use std::collections::BTreeMap;
 use yew::prelude::*;
 
 use super::receipt_template::ReceiptProps;
 use crate::services::parser::*;
 
-#[derive(PartialEq, Properties, Debug, Clone)]
+#[derive(PartialEq, Properties, Debug, Clone, Default)]
 pub struct DividendList {
     pub settlement_date: Option<NaiveDate>,      // 入金日(受渡日)
     pub product: Option<String>,                 // 商品
@@ -44,7 +43,7 @@ impl ReceiptProps for DividendList {
         }
     }
 
-    fn new_summary(receipts: &[Self]) -> Self {
+    fn new_summary(receipts: &[Self]) -> Option<Self> {
         let (total_dividends_before_tax, total_taxes, total_net_amount_received) =
             receipts.iter().fold(
                 (0, 0, 0),
@@ -69,7 +68,7 @@ impl ReceiptProps for DividendList {
                 },
             );
 
-        Self {
+        Some(Self {
             settlement_date: None,
             product: None,
             account: None,
@@ -84,7 +83,7 @@ impl ReceiptProps for DividendList {
             total_dividends_before_tax: Some(total_dividends_before_tax),
             total_taxes: Some(total_taxes),
             total_net_amount_received: Some(total_net_amount_received),
-        }
+        })
     }
 
     fn new_from_string_record(record: StringRecord) -> Self {
@@ -145,15 +144,15 @@ impl ReceiptProps for DividendList {
         NaiveDate::from_ymd_opt(date.year(), date.month(), 1)
     }
 
-    fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html {
+    fn view_summary(receipts: Vec<Self>) -> Html {
         let (total_dividends_before_tax, total_taxes, total_net_amount_received) =
-            receipt_summary.iter().map(|(_, summary)| summary).fold(
+            receipts.iter().fold(
                 (0, 0, 0),
                 |(total_dividends_before_tax, total_taxes, total_net_amount_received), dividend| {
                     (
-                        total_dividends_before_tax + dividend.total_dividends_before_tax.unwrap(),
-                        total_taxes + dividend.total_taxes.unwrap(),
-                        total_net_amount_received + dividend.total_net_amount_received.unwrap(),
+                        total_dividends_before_tax + dividend.dividends_before_tax.unwrap(),
+                        total_taxes + dividend.taxes.unwrap(),
+                        total_net_amount_received + dividend.net_amount_received.unwrap(),
                     )
                 },
             );
@@ -169,7 +168,7 @@ impl ReceiptProps for DividendList {
         }
     }
 
-    fn is_view_summary_table() -> bool {
-        true
+    fn search(&self, query: String) -> bool {
+        self.security_code.as_deref().unwrap_or_default() == query
     }
 }

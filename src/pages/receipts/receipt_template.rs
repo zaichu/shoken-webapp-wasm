@@ -1,10 +1,10 @@
 use chrono::NaiveDate;
 use csv::StringRecord;
 use gloo::console;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, ops::Not};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{File, HtmlInputElement};
-use yew::prelude::*;
+use yew::{prelude::*, virtual_dom::VNode};
 
 use crate::{services::*, setting::*};
 
@@ -15,51 +15,71 @@ pub struct ReceiptTemplateProps {
 
 #[function_component]
 pub fn ReceiptTemplate<T: ReceiptProps>(props: &ReceiptTemplateProps) -> Html {
-    let receipt_map = use_state(BTreeMap::<NaiveDate, Vec<T>>::new);
-    let receipt_summary = use_state(BTreeMap::<NaiveDate, T>::new);
+    let receipts = use_state(Vec::<T>::new);
     let csv_file = use_state(|| None::<File>);
-    let file_name = use_state(|| "CSVファイルを選択してください。".to_string());
-
-    let on_input = on_input_callback(csv_file.clone());
+    let file_name = use_state(String::new);
+    let query = use_state(|| None::<String>);
 
     {
         let file_name = file_name.clone();
-        let receipt_map = receipt_map.clone();
-        let receipt_summary = receipt_summary.clone();
+        let receipts = receipts.clone();
 
         use_effect_with((*csv_file).clone(), move |csv_file| {
-            handle_file_change((*csv_file).clone(), file_name, receipt_map, receipt_summary);
+            handle_csv_file_change((*csv_file).clone(), file_name, receipts);
         });
     }
 
     html! {
         <>
-            <div class="input-group">
-                <label class="input-group-btn" for="csv-file-input">
-                    <span class="btn bg-info text-white">{ "CSVファイル選択" }</span>
-                </label>
-                <input id="csv-file-input" type="file" accept=".csv" style="display:none" oninput={on_input} />
-                <input type="text" class="form-control" readonly=true value={(*file_name).clone()} />
-            </div>
+            { render_csvfile_input(csv_file.clone(), file_name.clone()) }
+
             <div class="mt-2">
-                <table class="table table-bordered">{ T::view_summary(&(*receipt_summary)) }</table>
+                <table class="table table-bordered">{ T::view_summary((*receipts).clone()) }</table>
             </div>
             <div class="mt-1">
                 <div class="card shadow-sm">
                     <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">{ props.name.clone() }</h5>
+                        <div class="row align-items-center">
+                            <div class="col col-lg-1"><h5 class="mb-0">{ props.name.clone() }</h5></div>
+                            <div class="col col-md-auto">{ render_search::<T>(query.clone()) }</div>
+                        </div>
                     </div>
                     if csv_file.is_some() {
                         <div class="table-responsive" style="max-height: 500px;">
                             <table class="table table-bordered">
                                 { render_thead::<T>() }
-                                { render_tbody::<T>(&receipt_map, &receipt_summary) }
+                                { render_tbody::<T>((*receipts).clone(), (*query).clone()) }
                             </table>
                         </div>
                     }
                 </div>
             </div>
         </>
+    }
+}
+
+fn render_search<T: ReceiptProps>(query: UseStateHandle<Option<String>>) -> Html {
+    let on_input = on_input_security_code_callback(query.clone());
+    html! {
+        if T::is_view_search() {
+            <input type="text" class="form-control form-control-sm" placeholder="銘柄コード" value={(*query).clone()} oninput={on_input} />
+        }
+    }
+}
+
+fn render_csvfile_input(
+    csv_file: UseStateHandle<Option<File>>,
+    file_name: UseStateHandle<String>,
+) -> Html {
+    let on_input = on_input_csvfile_callback(csv_file.clone());
+    html! {
+    <div class="input-group">
+        <label class="input-group-btn" for="csv-file-input">
+            <span class="btn bg-info text-white">{ "CSVファイル選択" }</span>
+        </label>
+        <input id="csv-file-input" type="file" accept=".csv" style="display:none" oninput={on_input} />
+        <input type="text" class="form-control form-control-sm" readonly=true placeholder="CSVファイルを選択してください。" value={(*file_name).clone()} />
+    </div>
     }
 }
 
@@ -81,40 +101,50 @@ fn render_thead<T: ReceiptProps>() -> Html {
     }
 }
 
-fn render_tbody<T: ReceiptProps>(
-    receipt_map: &UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
-    receipt_summary: &UseStateHandle<BTreeMap<NaiveDate, T>>,
-) -> Html {
-    html! {
-    <tbody> {
-        for receipt_map.iter().map(|(date, receipts)| {
-            let summary_view = if T::is_view_summary_table() {
-                receipt_summary.get(date).map( |summary| summary.view(Some(format!("table-success"))))
-            } else {
-                None
-            };
-            html! { for receipts.iter().rev().map(|receipt| receipt.view(None)).chain(summary_view) }
+fn render_tbody<T: ReceiptProps>(receipts: Vec<T>, query: Option<String>) -> Html {
+    let receipts_view_map = receipts
+        .into_iter()
+        .filter_map(|receipt| match &query {
+            Some(q) => receipt.search(q.clone()).then(|| (q.to_string(), receipt)),
+            None => receipt.get_date().map(|date| (date.to_string(), receipt)),
         })
-    }
-    </tbody>
+        .fold(
+            BTreeMap::new(),
+            |mut acc: BTreeMap<String, Vec<T>>, (key, receipt)| {
+                acc.entry(key).or_default().push(receipt);
+                acc
+            },
+        )
+        .into_iter()
+        .flat_map(|(_, receipts)| {
+            let mut views: Vec<Html> = receipts.iter().map(|r| r.view(None)).collect();
+            if let Some(summary) = T::new_summary(&receipts) {
+                views.push(summary.view(Some(format!("table-success"))));
+            }
+            views
+        })
+        .collect::<Vec<VNode>>();
+
+    html! {
+        <tbody>
+            { for receipts_view_map }
+        </tbody>
     }
 }
 
-fn handle_file_change<T: ReceiptProps>(
+fn handle_csv_file_change<T: ReceiptProps>(
     csv_file: Option<File>,
     file_name: UseStateHandle<String>,
-    receipt_map: UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
-    receipt_summary: UseStateHandle<BTreeMap<NaiveDate, T>>,
+    receipt_map: UseStateHandle<Vec<T>>,
 ) {
     file_name.set("".to_string());
-    receipt_summary.set(BTreeMap::new());
 
     if let Some(csv_file) = csv_file.clone() {
         spawn_local(async move {
             file_name.set(csv_file.name());
             if let Err(err) = csv_reader::read_file(&csv_file)
                 .await
-                .and_then(|content| process_csv_content(receipt_map, receipt_summary, content))
+                .and_then(|content| process_csv_content(receipt_map, content))
             {
                 console::log!(err.to_string());
             };
@@ -122,7 +152,7 @@ fn handle_file_change<T: ReceiptProps>(
     }
 }
 
-fn on_input_callback(csv_file: UseStateHandle<Option<File>>) -> Callback<InputEvent> {
+fn on_input_csvfile_callback(csv_file: UseStateHandle<Option<File>>) -> Callback<InputEvent> {
     Callback::from(move |e: InputEvent| {
         let input: HtmlInputElement = e.target_unchecked_into();
         let value = input.files().and_then(|files| files.get(0));
@@ -130,45 +160,51 @@ fn on_input_callback(csv_file: UseStateHandle<Option<File>>) -> Callback<InputEv
     })
 }
 
+fn on_input_security_code_callback(
+    security_code: UseStateHandle<Option<String>>,
+) -> Callback<InputEvent> {
+    Callback::from(move |e: InputEvent| {
+        let input: HtmlInputElement = e.target_unchecked_into();
+        let value = input.value();
+        security_code.set(value.is_empty().not().then_some(value));
+    })
+}
+
 fn process_csv_content<T: ReceiptProps>(
-    receipt_map: UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
-    receipt_summary: UseStateHandle<BTreeMap<NaiveDate, T>>,
+    receipt_map: UseStateHandle<Vec<T>>,
     content: Vec<u8>,
 ) -> Result<(), csv_reader::CSVError> {
     let records = csv_reader::read_csv(content)?;
-    let new_receipt_map = records
+    let new_receipt_map: Vec<_> = records
         .into_iter()
-        .filter_map(|record| {
-            let receipt = T::new_from_string_record(record);
-            receipt.get_date().map(|date| (date, receipt))
-        })
-        .fold(
-            BTreeMap::new(),
-            |mut acc: BTreeMap<NaiveDate, Vec<T>>, (date, receipt)| {
-                acc.entry(date).or_default().push(receipt);
-                acc
-            },
-        );
+        .map(|record| T::new_from_string_record(record))
+        .rev()
+        .collect();
     receipt_map.set(new_receipt_map.clone());
-
-    let new_receipt_summary = new_receipt_map
-        .iter()
-        .map(|(date, receipts)| (*date, T::new_summary(receipts)))
-        .collect::<BTreeMap<NaiveDate, T>>();
-    receipt_summary.set(new_receipt_summary);
 
     Ok(())
 }
 
-pub trait ReceiptProps: Clone + Sized + PartialEq + 'static {
+pub trait ReceiptProps: Clone + Sized + PartialEq + Default + 'static {
     fn new() -> Self;
-    fn new_summary(receipts: &[Self]) -> Self;
+    fn new_summary(_receipts: &[Self]) -> Option<Self> {
+        None
+    }
     fn new_from_string_record(record: StringRecord) -> Self;
 
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)>;
     fn get_date(&self) -> Option<NaiveDate>;
-    fn is_view_summary_table() -> bool;
-    fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html;
+
+    fn search(&self, _: String) -> bool {
+        true
+    }
+
+    fn is_view_search() -> bool {
+        true
+    }
+
+    fn view_summary(receipts: Vec<Self>) -> Html;
+
     fn view(&self, tr_class: Option<String>) -> Html {
         html! {
             <tr class={tr_class}>
