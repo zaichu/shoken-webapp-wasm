@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use csv::StringRecord;
 use gloo::console;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, ops::Not};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{File, HtmlInputElement};
 use yew::prelude::*;
@@ -18,9 +18,8 @@ pub fn ReceiptTemplate<T: ReceiptProps>(props: &ReceiptTemplateProps) -> Html {
     let receipt_map = use_state(BTreeMap::<NaiveDate, Vec<T>>::new);
     let receipt_summary = use_state(BTreeMap::<NaiveDate, T>::new);
     let csv_file = use_state(|| None::<File>);
-    let file_name = use_state(|| "CSVファイルを選択してください。".to_string());
-
-    let on_input = on_input_callback(csv_file.clone());
+    let file_name = use_state(String::new);
+    let query = use_state(|| None::<String>);
 
     {
         let file_name = file_name.clone();
@@ -28,38 +27,61 @@ pub fn ReceiptTemplate<T: ReceiptProps>(props: &ReceiptTemplateProps) -> Html {
         let receipt_summary = receipt_summary.clone();
 
         use_effect_with((*csv_file).clone(), move |csv_file| {
-            handle_file_change((*csv_file).clone(), file_name, receipt_map, receipt_summary);
+            handle_csv_file_change((*csv_file).clone(), file_name, receipt_map, receipt_summary);
         });
     }
 
     html! {
         <>
-            <div class="input-group">
-                <label class="input-group-btn" for="csv-file-input">
-                    <span class="btn bg-info text-white">{ "CSVファイル選択" }</span>
-                </label>
-                <input id="csv-file-input" type="file" accept=".csv" style="display:none" oninput={on_input} />
-                <input type="text" class="form-control" readonly=true value={(*file_name).clone()} />
-            </div>
+            { render_csvfile_input(csv_file.clone(), file_name.clone()) }
+
             <div class="mt-2">
                 <table class="table table-bordered">{ T::view_summary(&(*receipt_summary)) }</table>
             </div>
             <div class="mt-1">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">{ props.name.clone() }</h5>
+                    <div class="card-header bg-info text-white row row-cols-lg-auto align-items-center">
+                        <div class="col"><h5 class="mb-0">{ props.name.clone() }</h5></div>
+                        <div class="col-sm-10">{ render_search::<T>(query.clone()) }</div>
                     </div>
                     if csv_file.is_some() {
                         <div class="table-responsive" style="max-height: 500px;">
                             <table class="table table-bordered">
                                 { render_thead::<T>() }
-                                { render_tbody::<T>(&receipt_map, &receipt_summary) }
+                                { render_tbody::<T>(&receipt_map, &receipt_summary, &query) }
                             </table>
                         </div>
                     }
                 </div>
             </div>
         </>
+    }
+}
+
+fn render_search<T: ReceiptProps>(query: UseStateHandle<Option<String>>) -> Html {
+    let on_input = on_input_security_code_callback(query.clone());
+    html! {
+    <div class="col">
+        if T::is_view_search() {
+            <input type="text" class="form-control" placeholder="銘柄コード" value={(*query).clone()} oninput={on_input} />
+        }
+    </div>
+    }
+}
+
+fn render_csvfile_input(
+    csv_file: UseStateHandle<Option<File>>,
+    file_name: UseStateHandle<String>,
+) -> Html {
+    let on_input = on_input_csvfile_callback(csv_file.clone());
+    html! {
+    <div class="input-group mt-2">
+        <label class="input-group-btn" for="csv-file-input">
+            <span class="btn bg-info text-white">{ "CSVファイル選択" }</span>
+        </label>
+        <input id="csv-file-input" type="file" accept=".csv" style="display:none" oninput={on_input} />
+        <input type="text" class="form-control" readonly=true placeholder="CSVファイルを選択してください。" value={(*file_name).clone()} />
+    </div>
     }
 }
 
@@ -84,23 +106,24 @@ fn render_thead<T: ReceiptProps>() -> Html {
 fn render_tbody<T: ReceiptProps>(
     receipt_map: &UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
     receipt_summary: &UseStateHandle<BTreeMap<NaiveDate, T>>,
+    query: &UseStateHandle<Option<String>>,
 ) -> Html {
     html! {
     <tbody> {
         for receipt_map.iter().map(|(date, receipts)| {
-            let summary_view = if T::is_view_summary_table() {
-                receipt_summary.get(date).map( |summary| summary.view(Some(format!("table-success"))))
+            let summary_view = if T::is_view_summary_table() && query.is_none() {
+                receipt_summary.get(date).map(|summary| summary.view(Some(format!("table-success"))))
             } else {
                 None
             };
-            html! { for receipts.iter().rev().map(|receipt| receipt.view(None)).chain(summary_view) }
+            html! { for receipts.iter().rev().filter_map(|receipt| receipt.search((**query).clone()).then_some(receipt.view(None))).chain(summary_view) }
         })
     }
     </tbody>
     }
 }
 
-fn handle_file_change<T: ReceiptProps>(
+fn handle_csv_file_change<T: ReceiptProps>(
     csv_file: Option<File>,
     file_name: UseStateHandle<String>,
     receipt_map: UseStateHandle<BTreeMap<NaiveDate, Vec<T>>>,
@@ -122,11 +145,21 @@ fn handle_file_change<T: ReceiptProps>(
     }
 }
 
-fn on_input_callback(csv_file: UseStateHandle<Option<File>>) -> Callback<InputEvent> {
+fn on_input_csvfile_callback(csv_file: UseStateHandle<Option<File>>) -> Callback<InputEvent> {
     Callback::from(move |e: InputEvent| {
         let input: HtmlInputElement = e.target_unchecked_into();
         let value = input.files().and_then(|files| files.get(0));
         csv_file.set(value.clone());
+    })
+}
+
+fn on_input_security_code_callback(
+    security_code: UseStateHandle<Option<String>>,
+) -> Callback<InputEvent> {
+    Callback::from(move |e: InputEvent| {
+        let input: HtmlInputElement = e.target_unchecked_into();
+        let value = input.value();
+        security_code.set(value.is_empty().not().then_some(value));
     })
 }
 
@@ -167,8 +200,21 @@ pub trait ReceiptProps: Clone + Sized + PartialEq + 'static {
 
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)>;
     fn get_date(&self) -> Option<NaiveDate>;
-    fn is_view_summary_table() -> bool;
-    fn view_summary(receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html;
+
+    fn search(&self, _: Option<String>) -> bool {
+        true
+    }
+
+    fn is_view_search() -> bool {
+        true
+    }
+
+    fn is_view_summary_table() -> bool {
+        true
+    }
+
+    fn view_summary(_receipt_summary: &BTreeMap<NaiveDate, Self>) -> Html;
+
     fn view(&self, tr_class: Option<String>) -> Html {
         html! {
             <tr class={tr_class}>

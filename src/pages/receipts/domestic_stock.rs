@@ -159,7 +159,9 @@ impl ReceiptProps for DomesticStock {
         }
     }
 
-    fn is_view_summary_table() -> bool {
-        true
+    fn search(&self, query: Option<String>) -> bool {
+        query.map_or(true, |q| {
+            self.security_code.as_deref().unwrap_or_default() == q
+        })
     }
 }

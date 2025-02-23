@@ -134,4 +134,8 @@ impl ReceiptProps for MutualFund {
     fn is_view_summary_table() -> bool {
         false
     }
+
+    fn is_view_search() -> bool {
+        false
+    }
 }
