@@ -42,7 +42,7 @@ impl ReceiptProps for DomesticStock {
         }
     }
 
-    fn new_summary(receipts: &[Self]) -> Option<Self> {
+    fn new_summary(receipts: &[&Self]) -> Option<Self> {
         let (specific_account_total, nisa_account_total) = receipts
             .iter()
             .filter_map(|domestic_stock| {
@@ -135,7 +135,7 @@ impl ReceiptProps for DomesticStock {
         ]
     }
 
-    fn view_summary(receipts: Vec<Self>) -> Html {
+    fn view_summary(receipts: &[Self]) -> Html {
         let (total_realized_profit_and_loss, total_taxes, total_realized_profit_and_loss_after_tax) =
             receipts
                 .into_iter()

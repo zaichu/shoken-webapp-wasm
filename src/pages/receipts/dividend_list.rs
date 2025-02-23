@@ -43,7 +43,7 @@ impl ReceiptProps for DividendList {
         }
     }
 
-    fn new_summary(receipts: &[Self]) -> Option<Self> {
+    fn new_summary(receipts: &[&Self]) -> Option<Self> {
         let (total_dividends_before_tax, total_taxes, total_net_amount_received) =
             receipts.iter().fold(
                 (0, 0, 0),
@@ -144,7 +144,7 @@ impl ReceiptProps for DividendList {
         NaiveDate::from_ymd_opt(date.year(), date.month(), 1)
     }
 
-    fn view_summary(receipts: Vec<Self>) -> Html {
+    fn view_summary(receipts: &[Self]) -> Html {
         let (total_dividends_before_tax, total_taxes, total_net_amount_received) =
             receipts.iter().fold(
                 (0, 0, 0),

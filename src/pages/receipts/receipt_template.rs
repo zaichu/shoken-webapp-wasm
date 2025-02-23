@@ -1,7 +1,8 @@
 use chrono::NaiveDate;
 use csv::StringRecord;
 use gloo::console;
-use std::{collections::BTreeMap, ops::Not};
+use itertools::Itertools;
+use std::ops::Not;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{File, HtmlInputElement};
 use yew::{prelude::*, virtual_dom::VNode};
@@ -34,21 +35,21 @@ pub fn ReceiptTemplate<T: ReceiptProps>(props: &ReceiptTemplateProps) -> Html {
             { render_csvfile_input(csv_file.clone(), file_name.clone()) }
 
             <div class="mt-2">
-                <table class="table table-bordered">{ T::view_summary((*receipts).clone()) }</table>
+                <table class="table table-bordered">{ T::view_summary(&(*receipts)) }</table>
             </div>
             <div class="mt-1">
                 <div class="card shadow-sm">
                     <div class="card-header bg-info text-white">
                         <div class="row align-items-center">
                             <div class="col col-lg-1"><h5 class="mb-0">{ props.name.clone() }</h5></div>
-                            <div class="col col-md-auto">{ render_search::<T>(query.clone()) }</div>
+                            <div class="col col-md-auto">{ render_search::<T>(&query) }</div>
                         </div>
                     </div>
                     if csv_file.is_some() {
                         <div class="table-responsive" style="max-height: 500px;">
                             <table class="table table-bordered">
                                 { render_thead::<T>() }
-                                { render_tbody::<T>((*receipts).clone(), (*query).clone()) }
+                                { render_tbody::<T>(&(*receipts), &(*query)) }
                             </table>
                         </div>
                     }
@@ -58,11 +59,11 @@ pub fn ReceiptTemplate<T: ReceiptProps>(props: &ReceiptTemplateProps) -> Html {
     }
 }
 
-fn render_search<T: ReceiptProps>(query: UseStateHandle<Option<String>>) -> Html {
+fn render_search<T: ReceiptProps>(query: &UseStateHandle<Option<String>>) -> Html {
     let on_input = on_input_security_code_callback(query.clone());
     html! {
         if T::is_view_search() {
-            <input type="text" class="form-control form-control-sm" placeholder="銘柄コード" value={(*query).clone()} oninput={on_input} />
+            <input type="text" class="form-control form-control-sm" placeholder="銘柄コード" value={(**query).clone()} oninput={on_input} />
         }
     }
 }
@@ -101,7 +102,7 @@ fn render_thead<T: ReceiptProps>() -> Html {
     }
 }
 
-fn render_tbody<T: ReceiptProps>(receipts: Vec<T>, query: Option<String>) -> Html {
+fn render_tbody<T: ReceiptProps>(receipts: &Vec<T>, query: &Option<String>) -> Html {
     html! {
         <tbody> {
             receipts
@@ -112,15 +113,10 @@ fn render_tbody<T: ReceiptProps>(receipts: Vec<T>, query: Option<String>) -> Htm
                         None => receipt.get_date().map(|date| (date.to_string(), receipt)),
                     }
                 })
-                .fold(
-                    BTreeMap::new(),
-                    |mut acc: BTreeMap<String, Vec<T>>, (key, receipt)| {
-                        acc.entry(key).or_default().push(receipt);
-                        acc
-                    },
-                )
+                .chunk_by(|(key, _)| key.clone())
                 .into_iter()
-                .flat_map(|(_, receipts)| {
+                .flat_map(|(_, group)| {
+                    let receipts: Vec<&T> = group.map(|(_, receipt)| receipt).collect();
                     let mut views: Vec<Html> = receipts.iter().map(|r| r.view(None)).collect();
                     if let Some(summary) = T::new_summary(&receipts) {
                         views.push(summary.view(Some(format!("table-success"))));
@@ -179,7 +175,11 @@ fn process_csv_content<T: ReceiptProps>(
     let new_receipts: Vec<_> = records
         .into_iter()
         .map(|record| T::new_from_string_record(record))
-        .rev()
+        .sorted_by(|a, b| {
+            a.get_date()
+                .unwrap_or_default()
+                .cmp(&b.get_date().unwrap_or_default())
+        })
         .collect();
     receipts.set(new_receipts);
 
@@ -188,7 +188,7 @@ fn process_csv_content<T: ReceiptProps>(
 
 pub trait ReceiptProps: Clone + Sized + PartialEq + Default + 'static {
     fn new() -> Self;
-    fn new_summary(_receipts: &[Self]) -> Option<Self> {
+    fn new_summary(_receipts: &[&Self]) -> Option<Self> {
         None
     }
     fn new_from_string_record(record: StringRecord) -> Self;
@@ -196,7 +196,7 @@ pub trait ReceiptProps: Clone + Sized + PartialEq + Default + 'static {
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)>;
     fn get_date(&self) -> Option<NaiveDate>;
 
-    fn search(&self, _: &str) -> bool {
+    fn search(&self, _query: &str) -> bool {
         true
     }
 
@@ -204,7 +204,7 @@ pub trait ReceiptProps: Clone + Sized + PartialEq + Default + 'static {
         true
     }
 
-    fn view_summary(receipts: Vec<Self>) -> Html;
+    fn view_summary(receipts: &[Self]) -> Html;
 
     fn view(&self, tr_class: Option<String>) -> Html {
         html! {

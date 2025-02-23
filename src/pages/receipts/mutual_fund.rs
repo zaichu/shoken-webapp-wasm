@@ -102,7 +102,7 @@ impl ReceiptProps for MutualFund {
         ]
     }
 
-    fn view_summary(receipts: Vec<Self>) -> Html {
+    fn view_summary(receipts: &[Self]) -> Html {
         let (total_realized_profit_and_loss, total_taxes, total_realized_profit_and_loss_after_tax) =
             receipts.iter().fold(
                 (0, 0, 0),
