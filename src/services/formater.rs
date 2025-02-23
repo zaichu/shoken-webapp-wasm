@@ -24,7 +24,7 @@ impl StrFormater for &str {
     }
 
     fn format_number(&self) -> String {
-        let (sign, s) = self.strip_prefix('-').map_or(("", self), |_| ("-", self));
+        let (sign, s) = self.strip_prefix('-').map_or(("", *self), |s| ("-", s));
         let parts: Vec<&str> = s.split('.').collect();
         let integer_part = parts[0]
             .chars()
@@ -50,6 +50,9 @@ impl StrFormater for &str {
 
     fn format_yen(&self) -> String {
         if self.is_empty() {
+            return "".to_string();
+        }
+        if *self == "-" {
             return "-".to_string();
         }
         format!("¥ {}", self.format_number())
