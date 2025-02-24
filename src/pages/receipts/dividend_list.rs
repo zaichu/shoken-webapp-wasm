@@ -171,4 +171,12 @@ impl ReceiptProps for DividendList {
     fn search(&self, query: &str) -> bool {
         self.security_code.as_deref().unwrap_or_default() == query
     }
+
+    fn get_security_code(&self) -> &str {
+        self.security_code.as_deref().unwrap_or_default()
+    }
+
+    fn get_security_name(&self) -> &str {
+        self.security_name.as_deref().unwrap_or_default()
+    }
 }

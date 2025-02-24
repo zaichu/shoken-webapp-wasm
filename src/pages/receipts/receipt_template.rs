@@ -42,7 +42,7 @@ pub fn ReceiptTemplate<T: ReceiptProps>(props: &ReceiptTemplateProps) -> Html {
                     <div class="card-header bg-info text-white">
                         <div class="row align-items-center">
                             <div class="col col-lg-1"><h5 class="mb-0">{ props.name.clone() }</h5></div>
-                            <div class="col col-md-auto">{ render_search::<T>(&query) }</div>
+                            <div class="col col-md-auto">{ render_search::<T>(&(*receipts), &query) }</div>
                         </div>
                     </div>
                     if csv_file.is_some() {
@@ -59,11 +59,37 @@ pub fn ReceiptTemplate<T: ReceiptProps>(props: &ReceiptTemplateProps) -> Html {
     }
 }
 
-fn render_search<T: ReceiptProps>(query: &UseStateHandle<Option<String>>) -> Html {
+fn render_search<T: ReceiptProps>(
+    receipts: &Vec<T>,
+    query: &UseStateHandle<Option<String>>,
+) -> Html {
     let on_input = on_input_security_code_callback(query.clone());
+
     html! {
         if T::is_view_search() {
-            <input type="text" class="form-control form-control-sm" placeholder="銘柄コード" value={(**query).clone()} oninput={on_input} />
+            <input type="text" class="form-control form-control-sm" placeholder="銘柄コード" list="states" name="state" value={(**query).clone()} oninput={on_input} />
+            <datalist id="states">
+                {
+                    receipts
+                    .into_iter()
+                    .map(|receipt| {
+                        ((*receipt).get_security_code().to_string(), receipt)
+                    })
+                    .sorted_by(|(a, _), (b, _)| a.cmp(&b))
+                    .chunk_by(|(key, _)| key.clone())
+                    .into_iter()
+                    .map(|(security_code, receipts)| {
+                        let security_name = receipts.map(|(_, x)| x).sorted_by(|a, b| {
+                            a.get_date()
+                                .unwrap_or_default()
+                                .cmp(&b.get_date().unwrap_or_default())
+                        }).collect::<Vec<&T>>().last().unwrap().get_security_name();
+
+                        html! { <option value={security_code}>{security_name}</option> }
+                    })
+                    .collect::<Vec<VNode>>()
+                }
+            </datalist>
         }
     }
 }
@@ -195,6 +221,14 @@ pub trait ReceiptProps: Clone + Sized + PartialEq + Default + 'static {
 
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)>;
     fn get_date(&self) -> Option<NaiveDate>;
+
+    fn get_security_code(&self) -> &str {
+        ""
+    }
+
+    fn get_security_name(&self) -> &str {
+        ""
+    }
 
     fn search(&self, _query: &str) -> bool {
         true
