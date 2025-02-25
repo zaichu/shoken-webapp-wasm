@@ -33,26 +33,26 @@ pub fn ReceiptTemplate<T: ReceiptProps>(props: &ReceiptTemplateProps) -> Html {
     html! {
         <>
             { render_csvfile_input(csv_file.clone(), file_name.clone()) }
-
             <div class="mt-2">
                 <table class="table table-bordered">{ T::view_summary(&(*receipts)) }</table>
             </div>
-            <div class="mt-1">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-info text-white">
-                        <div class="row align-items-center">
-                            <div class="col col-lg-1"><h5 class="mb-0">{ props.name.clone() }</h5></div>
-                            <div class="col col-md-auto">{ render_search::<T>(&(*receipts), &query) }</div>
-                        </div>
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <div class="row align-items-center">
+                        <div class="col col-lg-1"><h5 class="mb-0">{ props.name.clone() }</h5></div>
+                        if T::is_view_search() {
+                            <div class="col col-md-auto"><h6 class="mb-0">{ "銘柄コード:" }</h6></div>
+                            <div class="col col-lg-2">{ render_search::<T>(&(*receipts), &query) }</div>
+                        }
                     </div>
-                    if csv_file.is_some() {
-                        <div class="table-responsive" style="max-height: 500px;">
-                            <table class="table table-bordered">
-                                { render_thead::<T>() }
-                                { render_tbody::<T>(&(*receipts), &(*query)) }
-                            </table>
-                        </div>
-                    }
+                </div>
+                <div class="table-responsive" style="max-height: 500px;">
+                    <table class="table table-bordered">
+                        { render_thead::<T>() }
+                        if csv_file.is_some() {
+                            { render_tbody::<T>(&(*receipts), &(*query)) }
+                        }
+                    </table>
                 </div>
             </div>
         </>
@@ -63,34 +63,30 @@ fn render_search<T: ReceiptProps>(
     receipts: &Vec<T>,
     query: &UseStateHandle<Option<String>>,
 ) -> Html {
-    let on_input = on_input_security_code_callback(query.clone());
-
     html! {
-        if T::is_view_search() {
-            <input type="text" class="form-control form-control-sm" placeholder="銘柄コード" list="states" name="state" value={(**query).clone()} oninput={on_input} />
-            <datalist id="states">
-                {
-                    receipts
-                    .into_iter()
-                    .map(|receipt| {
-                        ((*receipt).get_security_code().to_string(), receipt)
-                    })
-                    .sorted_by(|(a, _), (b, _)| a.cmp(&b))
-                    .chunk_by(|(key, _)| key.clone())
-                    .into_iter()
-                    .map(|(security_code, receipts)| {
-                        let security_name = receipts.map(|(_, x)| x).sorted_by(|a, b| {
-                            a.get_date()
-                                .unwrap_or_default()
-                                .cmp(&b.get_date().unwrap_or_default())
-                        }).collect::<Vec<&T>>().last().unwrap().get_security_name();
+        <select class="form-select form-select-sm" oninput={on_input_security_code_callback(query)}>
+            <option selected=true />
+            {
+                receipts
+                .into_iter()
+                .map(|receipt| {
+                    ((*receipt).get_security_code().to_string(), receipt)
+                })
+                .sorted_by(|(a, _), (b, _)| a.cmp(&b))
+                .chunk_by(|(key, _)| key.clone())
+                .into_iter()
+                .map(|(security_code, receipts)| {
+                    let security_name = receipts.map(|(_, x)| x).sorted_by(|a, b| {
+                        a.get_date()
+                            .unwrap_or_default()
+                            .cmp(&b.get_date().unwrap_or_default())
+                    }).collect::<Vec<&T>>().last().unwrap().get_security_name();
 
-                        html! { <option value={security_code}>{security_name}</option> }
-                    })
-                    .collect::<Vec<VNode>>()
-                }
-            </datalist>
-        }
+                    html! { <option value={security_code.clone()}>{format!("{}: {}", security_code, security_name)}</option> }
+                })
+                .collect::<Vec<VNode>>()
+            }
+        </select>
     }
 }
 
@@ -184,8 +180,9 @@ fn on_input_csvfile_callback(csv_file: UseStateHandle<Option<File>>) -> Callback
 }
 
 fn on_input_security_code_callback(
-    security_code: UseStateHandle<Option<String>>,
+    security_code: &UseStateHandle<Option<String>>,
 ) -> Callback<InputEvent> {
+    let security_code = security_code.clone();
     Callback::from(move |e: InputEvent| {
         let input: HtmlInputElement = e.target_unchecked_into();
         let value = input.value();
