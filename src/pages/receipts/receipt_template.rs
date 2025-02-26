@@ -64,30 +64,31 @@ fn render_search<T: ReceiptProps>(
     query: &UseStateHandle<Option<String>>,
 ) -> Html {
     html! {
-        <select class="form-select form-select-sm" oninput={on_input_security_code_callback(query)}>
-            <option selected=true />
-            {
-                receipts
+            <select class="form-select form-select-sm" oninput={on_input_security_code_callback(query)}>
+        <option selected=true />
+        {
+            receipts
                 .into_iter()
-                .map(|receipt| {
-                    ((*receipt).get_security_code().to_string(), receipt)
-                })
-                .sorted_by(|(a, _), (b, _)| a.cmp(&b))
+                .map(|receipt| { (receipt.get_security_code().to_string(), receipt) })
+                .sorted_by(|(a, _), (b, _)| a.cmp(b))
                 .chunk_by(|(key, _)| key.clone())
                 .into_iter()
-                .map(|(security_code, receipts)| {
-                    let security_name = receipts.map(|(_, x)| x).sorted_by(|a, b| {
-                        a.get_date()
-                            .unwrap_or_default()
-                            .cmp(&b.get_date().unwrap_or_default())
-                    }).collect::<Vec<&T>>().last().unwrap().get_security_name();
+                .map(|(security_code, group)| {
+                    let security_name = group.max_by_key(|(_, r)| r.get_date().unwrap_or_default())
+                                             .map(|(_, r)| r.get_security_name().to_string())
+                                             .unwrap_or_default();
 
-                    html! { <option value={security_code.clone()}>{format!("{}: {}", security_code, security_name)}</option> }
+                    if security_code.is_empty() {
+                        html! { <option value={security_name.clone()}>{security_name}</option> }
+                    } else {
+                        html! { <option value={security_code.clone()}>{format!("{}: {}", security_code, security_name)}</option> }
+                    }
                 })
                 .collect::<Vec<VNode>>()
-            }
-        </select>
-    }
+        }
+    </select>
+
+        }
 }
 
 fn render_csvfile_input(
