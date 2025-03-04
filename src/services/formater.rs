@@ -58,3 +58,30 @@ impl StrFormater for &str {
         format!("¥ {}", self.format_number())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_date() {
+        assert_eq!("2023/12/31", "2023-12-31".format_date());
+        assert_eq!("2020/01/01", "2020-01-01".format_date());
+    }
+
+    #[test]
+    fn test_format_number() {
+        assert_eq!("1,234,567", "1234567".format_number());
+        assert_eq!("-1,234,567", "-1234567".format_number());
+        assert_eq!("1,234.56", "1234.56".format_number());
+        assert_eq!("123", "123".format_number());
+    }
+
+    #[test]
+    fn test_format_yen() {
+        assert_eq!("¥ 1,000", "1000".format_yen());
+        assert_eq!("¥ -1,000", "-1000".format_yen());
+        assert_eq!("", "".format_yen());
+        assert_eq!("-", "-".format_yen());
+    }
+}

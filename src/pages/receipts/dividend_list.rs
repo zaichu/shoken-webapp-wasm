@@ -150,9 +150,9 @@ impl ReceiptProps for DividendList {
                 (0, 0, 0),
                 |(total_dividends_before_tax, total_taxes, total_net_amount_received), dividend| {
                     (
-                        total_dividends_before_tax + dividend.dividends_before_tax.unwrap(),
-                        total_taxes + dividend.taxes.unwrap(),
-                        total_net_amount_received + dividend.net_amount_received.unwrap(),
+                        total_dividends_before_tax + dividend.dividends_before_tax.unwrap_or(0),
+                        total_taxes + dividend.taxes.unwrap_or(0),
+                        total_net_amount_received + dividend.net_amount_received.unwrap_or(0),
                     )
                 },
             );
@@ -170,6 +170,7 @@ impl ReceiptProps for DividendList {
 
     fn search(&self, query: &str) -> bool {
         self.security_code.as_deref().unwrap_or_default() == query
+            || self.security_name.as_deref().unwrap_or_default() == query
     }
 
     fn get_security_code(&self) -> &str {
