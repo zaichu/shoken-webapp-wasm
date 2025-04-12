@@ -9,7 +9,6 @@ use crate::errors::{AppError, AppResult};
 static OAUTH2_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 static OAUTH2_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 
-#[allow(dead_code)]
 pub async fn google_oauth() -> AppResult<(Url, CsrfToken)> {
     let client_id = ClientId::new(env::SHOKEN_WEBAPI_GOOGLE_OAUTH_CLIENT_ID.to_string());
     let client_secret =

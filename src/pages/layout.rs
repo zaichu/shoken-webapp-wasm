@@ -1,14 +1,16 @@
+use gloo::console;
+use wasm_bindgen_futures::spawn_local;
+use web_sys::window;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{app::Route, data::use_info::UserInfo};
+use crate::{app::Route, data::use_info::UserInfo, services::oauth_google::google_oauth};
 
 #[function_component]
 pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
-    let _user_info = use_context::<UserInfo>();
+    let user_info = use_context::<UserInfo>();
     html! {
         <>
-            // { render_auth_component(user_info) }
             <nav class="navbar bg-dark navbar-expand-lg bg-body-tertiary" data-bs-theme="dark">
                 <div class="container-fluid" style="max-width: 1600px;">
                     <Link<Route> classes="navbar-brand" to={Route::Home}>{ "証券Web" }</Link<Route>>
@@ -24,6 +26,9 @@ pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
                                 <Link<Route> classes="nav-link" to={Route::Receipts}>{ "受取金" }</Link<Route>>
                             </li>
                         </ul>
+                        <div class="ms-auto">
+                            { render_auth_component(user_info) }
+                        </div>
                     </div>
                 </div>
             </nav>
@@ -38,29 +43,31 @@ pub fn Layout(props: &yew::html::ChildrenProps) -> Html {
         </>
     }
 }
-/*
 #[function_component]
 fn Login() -> Html {
     let on_click = Callback::from(move |_| {
-        let future = async {
+        spawn_local(async {
             match google_oauth().await {
                 Ok((auth_url, _csrf_token)) => {
-                    let window = window().unwrap();
-                    window.location().set_href(&auth_url.to_string()).unwrap();
+                    if let Some(window) = window() {
+                        if let Ok(_) = window.location().set_href(&auth_url.to_string()) {
+                            // リダイレクト成功
+                        } else {
+                            console::error!("リダイレクトに失敗しました");
+                        }
+                    } else {
+                        console::error!("ウィンドウオブジェクトが取得できません");
+                    }
                 }
-                Err(err) => console::log!(&err.to_string()),
+                Err(err) => console::error!(format!("OAuth error: {}", err.to_string())),
             }
-        };
-        yew::platform::spawn_local(future);
+        });
     });
 
     html! {
-    <div class="mb-3">
-        <button onclick={on_click} class="btn btn-primary btn-lg">
-            <i class="fab fa-google me-2"/>
-            { "Googleでログイン" }
+        <button onclick={on_click} class="btn btn-primary">
+            { "Google認証" }
         </button>
-    </div>
     }
 }
 
@@ -68,8 +75,8 @@ fn Login() -> Html {
 fn Logout() -> Html {
     let on_click = Callback::from(move |_| {
         if let Some(storage) = window().and_then(|w| w.local_storage().ok()).flatten() {
-            _ = storage.remove_item("user_info");
-            yew::platform::spawn_local(async move {
+            let _ = storage.remove_item("user_info");
+            spawn_local(async move {
                 if let Some(window) = window() {
                     let _ = window.location().set_href(&Route::Home.to_path());
                 }
@@ -78,12 +85,9 @@ fn Logout() -> Html {
     });
 
     html! {
-    <div class="mb-3">
-        <button onclick={on_click} class="btn btn-outline-danger">
-            <i class="fas fa-sign-out-alt me-2"/>
-                { "ログアウト" }
+        <button onclick={on_click} class="btn btn-danger">
+            { "ログアウト" }
         </button>
-    </div>
     }
 }
 
@@ -94,4 +98,3 @@ fn render_auth_component(user_info: Option<UserInfo>) -> Html {
         None => html! { <Login /> },
     }
 }
- */
