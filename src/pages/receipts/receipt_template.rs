@@ -26,112 +26,152 @@ pub fn ReceiptTemplate<T: ReceiptProps>(props: &ReceiptTemplateProps) -> Html {
         let receipts = receipts.clone();
 
         use_effect_with((*csv_file).clone(), move |csv_file| {
-            handle_csv_file_change((*csv_file).clone(), file_name, receipts);
+            if let Some(file) = csv_file.clone() {
+                process_uploaded_file(file, file_name, receipts);
+            } else {
+                file_name.set(String::new());
+            }
         });
     }
 
     html! {
         <>
-            { render_csvfile_input(csv_file.clone(), file_name.clone()) }
+            { render_file_input(csv_file.clone(), file_name.clone()) }
             <div class="mt-2">
                 <table class="table table-bordered">{ T::view_summary(&(*receipts)) }</table>
             </div>
-            <div class="card shadow-sm">
-                <div class="card-header bg-info text-white">
-                    <div class="row align-items-center">
-                        <div class="col col-lg-1"><h5 class="mb-0">{ props.name.clone() }</h5></div>
-                        if T::is_view_search() {
-                            <div class="col col-md-auto"><h6 class="mb-0">{ "銘柄コード:" }</h6></div>
-                            <div class="col col-lg-2">{ render_search::<T>(&(*receipts), &query) }</div>
-                        }
-                    </div>
-                </div>
-                <div class="table-responsive" style="max-height: 500px;">
-                    <table class="table table-bordered">
-                        { render_thead::<T>() }
-                        if csv_file.is_some() {
-                            { render_tbody::<T>(&(*receipts), &(*query)) }
-                        }
-                    </table>
-                </div>
-            </div>
+            { render_receipt_card::<T>(props, &receipts, &query, csv_file.is_some()) }
         </>
     }
 }
 
-fn render_search<T: ReceiptProps>(
-    receipts: &Vec<T>,
-    query: &UseStateHandle<Option<String>>,
-) -> Html {
-    html! {
-            <select class="form-select form-select-sm" oninput={on_input_security_code_callback(query)}>
-        <option selected=true />
-        {
-            receipts
-                .into_iter()
-                .map(|receipt| { (receipt.get_security_code().to_string(), receipt) })
-                .sorted_by(|(a, _), (b, _)| a.cmp(b))
-                .chunk_by(|(key, _)| key.clone())
-                .into_iter()
-                .map(|(security_code, group)| {
-                    let security_name = group.max_by_key(|(_, r)| r.get_date().unwrap_or_default())
-                                             .map(|(_, r)| r.get_security_name().to_string())
-                                             .unwrap_or_default();
-
-                    if security_code.is_empty() {
-                        html! { <option value={security_name.clone()}>{security_name}</option> }
-                    } else {
-                        html! { <option value={security_code.clone()}>{format!("{}: {}", security_code, security_name)}</option> }
-                    }
-                })
-                .collect::<Vec<VNode>>()
-        }
-    </select>
-
-        }
-}
-
-fn render_csvfile_input(
+fn render_file_input(
     csv_file: UseStateHandle<Option<File>>,
     file_name: UseStateHandle<String>,
 ) -> Html {
-    let on_input = on_input_csvfile_callback(csv_file.clone());
+    let on_input = Callback::from(move |e: InputEvent| {
+        let input: HtmlInputElement = e.target_unchecked_into();
+        let value = input.files().and_then(|files| files.get(0));
+        csv_file.set(value.clone());
+    });
+
     html! {
-    <div class="input-group">
-        <label class="input-group-btn" for="csv-file-input">
-            <span class="btn bg-info text-white">{ "CSVファイル選択" }</span>
-        </label>
-        <input id="csv-file-input" type="file" accept=".csv" style="display:none" oninput={on_input} />
-        <input type="text" class="form-control form-control-sm" readonly=true placeholder="CSVファイルを選択してください。" value={(*file_name).clone()} />
-    </div>
+        <div class="input-group">
+            <label class="input-group-btn" for="csv-file-input">
+                <span class="btn bg-info text-white">{ "CSVファイル選択" }</span>
+            </label>
+            <input 
+                id="csv-file-input" 
+                type="file" 
+                accept=".csv" 
+                style="display:none" 
+                oninput={on_input} 
+            />
+            <input 
+                type="text" 
+                class="form-control form-control-sm" 
+                readonly=true 
+                placeholder="CSVファイルを選択してください。" 
+                value={(*file_name).clone()} 
+            />
+        </div>
     }
 }
 
-fn render_thead<T: ReceiptProps>() -> Html {
+fn render_receipt_card<T: ReceiptProps>(
+    props: &ReceiptTemplateProps,
+    receipts: &UseStateHandle<Vec<T>>,
+    query: &UseStateHandle<Option<String>>,
+    has_file: bool,
+) -> Html {
     html! {
-    <thead class="thead-light">
-        <tr> {
-            for T::new().get_all_fields().iter().map(|(header, _)| {
-                let header_text = HEADERS.get(header).unwrap_or(header);
-                html! {
-                    <th scope="col" style="position: sticky; top: 0; background-color: white; white-space: nowrap; text-align: center;">
-                        { header_text }
-                    </th>
-                }
-            })
-        }
-        </tr>
-    </thead>
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <div class="row align-items-center">
+                    <div class="col col-lg-1"><h5 class="mb-0">{ props.name.clone() }</h5></div>
+                    if T::is_view_search() {
+                        <div class="col col-md-auto"><h6 class="mb-0">{ "銘柄コード:" }</h6></div>
+                        <div class="col col-lg-2">{ render_search_dropdown::<T>(&*receipts, query) }</div>
+                    }
+                </div>
+            </div>
+            <div class="table-responsive" style="max-height: 500px;">
+                <table class="table table-bordered">
+                    { render_table_header::<T>() }
+                    if has_file {
+                        { render_table_body::<T>(&*receipts, &*query) }
+                    }
+                </table>
+            </div>
+        </div>
     }
 }
 
-fn render_tbody<T: ReceiptProps>(receipts: &Vec<T>, query: &Option<String>) -> Html {
+fn render_search_dropdown<T: ReceiptProps>(
+    receipts: &[T],
+    query: &UseStateHandle<Option<String>>,
+) -> Html {
+    let query_clone = query.clone();
+    let on_input = Callback::from(move |e: InputEvent| {
+        let input: HtmlInputElement = e.target_unchecked_into();
+        let value = input.value();
+        query_clone.set(value.is_empty().not().then_some(value));
+    });
+
     html! {
-        <tbody> {
+        <select class="form-select form-select-sm" oninput={on_input}>
+            <option selected=true />
+            {
+                receipts
+                    .iter()
+                    .map(|receipt| { (receipt.get_security_code().to_string(), receipt) })
+                    .sorted_by(|(a, _), (b, _)| a.cmp(b))
+                    .chunk_by(|(key, _)| key.clone())
+                    .into_iter()
+                    .map(|(security_code, group)| {
+                        let security_name = group.max_by_key(|(_, r)| r.get_date().unwrap_or_default())
+                                                .map(|(_, r)| r.get_security_name().to_string())
+                                                .unwrap_or_default();
+
+                        if security_code.is_empty() {
+                            html! { <option value={security_name.clone()}>{security_name}</option> }
+                        } else {
+                            html! { <option value={security_code.clone()}>{format!("{}: {}", security_code, security_name)}</option> }
+                        }
+                    })
+                    .collect::<Vec<VNode>>()
+            }
+        </select>
+    }
+}
+
+fn render_table_header<T: ReceiptProps>() -> Html {
+    html! {
+        <thead class="thead-light">
+            <tr>
+            {
+                for T::new().get_all_fields().iter().map(|(header, _)| {
+                    let header_text = HEADERS.get(header).unwrap_or(header);
+                    html! {
+                        <th scope="col" style="position: sticky; top: 0; background-color: white; white-space: nowrap; text-align: center;">
+                            { header_text }
+                        </th>
+                    }
+                })
+            }
+            </tr>
+        </thead>
+    }
+}
+
+fn render_table_body<T: ReceiptProps>(receipts: &[T], query: &Option<String>) -> Html {
+    html! {
+        <tbody>
+        {
             receipts
-                .into_iter()
+                .iter()
                 .filter_map(|receipt| {
-                    match &query {
+                    match query {
                         Some(q) => receipt.search(q).then(|| (q.to_string(), receipt)),
                         None => receipt.get_date().map(|date| (date.to_string(), receipt)),
                     }
@@ -142,7 +182,7 @@ fn render_tbody<T: ReceiptProps>(receipts: &Vec<T>, query: &Option<String>) -> H
                     let receipts: Vec<&T> = group.map(|(_, receipt)| receipt).collect();
                     let mut views: Vec<Html> = receipts.iter().map(|r| r.view(None)).collect();
                     if let Some(summary) = T::new_summary(&receipts) {
-                        views.push(summary.view(Some(format!("table-success"))));
+                        views.push(summary.view(Some("table-success".to_string())));
                     }
                     views
                 })
@@ -152,51 +192,33 @@ fn render_tbody<T: ReceiptProps>(receipts: &Vec<T>, query: &Option<String>) -> H
     }
 }
 
-fn handle_csv_file_change<T: ReceiptProps>(
-    csv_file: Option<File>,
+fn process_uploaded_file<T: ReceiptProps>(
+    file: File, 
     file_name: UseStateHandle<String>,
     receipts: UseStateHandle<Vec<T>>,
 ) {
-    file_name.set("".to_string());
-
-    if let Some(csv_file) = csv_file {
-        spawn_local(async move {
-            file_name.set(csv_file.name());
-            if let Err(err) = csv_reader::read_file(&csv_file)
-                .await
-                .and_then(|content| process_csv_content(receipts, content))
-            {
-                console::log!(err.to_string());
-            };
-        });
-    }
+    spawn_local(async move {
+        file_name.set(file.name());
+        match process_file_async(&file).await {
+            Ok(new_receipts) => {
+                receipts.set(new_receipts);
+            }
+            Err(err) => {
+                console::error!("ファイル処理エラー:", err.to_string());
+            }
+        }
+    });
 }
 
-fn on_input_csvfile_callback(csv_file: UseStateHandle<Option<File>>) -> Callback<InputEvent> {
-    Callback::from(move |e: InputEvent| {
-        let input: HtmlInputElement = e.target_unchecked_into();
-        let value = input.files().and_then(|files| files.get(0));
-        csv_file.set(value.clone());
-    })
-}
+async fn process_file_async<T: ReceiptProps>(file: &File) -> Result<Vec<T>, String> {
+    let content = csv_reader::read_file(file)
+        .await
+        .map_err(|e| format!("ファイル読み込みエラー: {}", e))?;
+    
+    let records = csv_reader::read_csv(content)
+        .map_err(|e| format!("CSV解析エラー: {}", e))?;
 
-fn on_input_security_code_callback(
-    security_code: &UseStateHandle<Option<String>>,
-) -> Callback<InputEvent> {
-    let security_code = security_code.clone();
-    Callback::from(move |e: InputEvent| {
-        let input: HtmlInputElement = e.target_unchecked_into();
-        let value = input.value();
-        security_code.set(value.is_empty().not().then_some(value));
-    })
-}
-
-fn process_csv_content<T: ReceiptProps>(
-    receipts: UseStateHandle<Vec<T>>,
-    content: Vec<u8>,
-) -> Result<(), csv_reader::CSVError> {
-    let records = csv_reader::read_csv(content)?;
-    let new_receipts: Vec<_> = records
+    let new_receipts = records
         .into_iter()
         .map(|record| T::new_from_string_record(record))
         .sorted_by(|a, b| {
@@ -205,19 +227,21 @@ fn process_csv_content<T: ReceiptProps>(
                 .cmp(&b.get_date().unwrap_or_default())
         })
         .collect();
-    receipts.set(new_receipts);
 
-    Ok(())
+    Ok(new_receipts)
 }
 
 pub trait ReceiptProps: Clone + Sized + PartialEq + Default + 'static {
     fn new() -> Self;
+    
     fn new_summary(_receipts: &[&Self]) -> Option<Self> {
         None
     }
+    
     fn new_from_string_record(record: StringRecord) -> Self;
 
     fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)>;
+    
     fn get_date(&self) -> Option<NaiveDate>;
 
     fn get_security_code(&self) -> &str {
@@ -273,5 +297,114 @@ pub trait ReceiptProps: Clone + Sized + PartialEq + Default + 'static {
             <td class={class} style={style}>{value}</td>
         </>
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use csv::StringRecord;
+    use std::str::FromStr;
+
+    #[derive(Clone, PartialEq, Debug, Default)]
+    struct MockReceipt {
+        date: Option<NaiveDate>,
+        name: Option<String>,
+        amount: Option<i32>,
+        security_code: Option<String>,
+        security_name: Option<String>,
+    }
+
+    impl ReceiptProps for MockReceipt {
+        fn new() -> Self {
+            Self::default()
+        }
+
+        fn new_from_string_record(record: StringRecord) -> Self {
+            Self {
+                date: record.get(0).and_then(|d| NaiveDate::from_str(d).ok()),
+                name: record.get(1).map(String::from),
+                amount: record.get(2).and_then(|a| a.parse().ok()),
+                security_code: record.get(3).map(String::from),
+                security_name: record.get(4).map(String::from),
+            }
+        }
+
+        fn get_all_fields(&self) -> Vec<(&'static str, Option<String>)> {
+            vec![
+                ("date", self.date.map(|d| d.to_string())),
+                ("name", self.name.clone()),
+                ("amount", self.amount.map(|a| a.to_string())),
+                ("security_code", self.security_code.clone()),
+                ("security_name", self.security_name.clone()),
+            ]
+        }
+
+        fn get_date(&self) -> Option<NaiveDate> {
+            self.date
+        }
+
+        fn get_security_code(&self) -> &str {
+            self.security_code.as_deref().unwrap_or("")
+        }
+
+        fn get_security_name(&self) -> &str {
+            self.security_name.as_deref().unwrap_or("")
+        }
+
+        fn view_summary(_receipts: &[Self]) -> Html {
+            html! { <tr><td>{"サンプルサマリー"}</td></tr> }
+        }
+
+        fn search(&self, query: &str) -> bool {
+            self.security_code.as_deref() == Some(query)
+        }
+    }
+
+    #[test]
+    fn test_mock_receipt_implementation() {
+        let mock = MockReceipt {
+            date: Some(NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()),
+            name: Some("テスト".to_string()),
+            amount: Some(1000),
+            security_code: Some("1234".to_string()),
+            security_name: Some("テスト証券".to_string()),
+        };
+
+        assert_eq!(mock.get_date(), Some(NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()));
+        assert_eq!(mock.get_security_code(), "1234");
+        assert_eq!(mock.get_security_name(), "テスト証券");
+        assert!(mock.search("1234"));
+        assert!(!mock.search("5678"));
+    }
+
+    #[test]
+    fn test_new_from_string_record() {
+        let record = StringRecord::from(vec!["2023-01-01", "テスト", "1000", "1234", "テスト証券"]);
+        let mock = MockReceipt::new_from_string_record(record);
+
+        assert_eq!(mock.date, Some(NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()));
+        assert_eq!(mock.name, Some("テスト".to_string()));
+        assert_eq!(mock.amount, Some(1000));
+        assert_eq!(mock.security_code, Some("1234".to_string()));
+        assert_eq!(mock.security_name, Some("テスト証券".to_string()));
+    }
+
+    #[test]
+    fn test_get_all_fields() {
+        let mock = MockReceipt {
+            date: Some(NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()),
+            name: Some("テスト".to_string()),
+            amount: Some(1000),
+            security_code: Some("1234".to_string()),
+            security_name: Some("テスト証券".to_string()),
+        };
+
+        let fields = mock.get_all_fields();
+        assert_eq!(fields.len(), 5);
+        assert_eq!(fields[0].0, "date");
+        assert_eq!(fields[0].1, Some("2023-01-01".to_string()));
+        assert_eq!(fields[1].0, "name");
+        assert_eq!(fields[1].1, Some("テスト".to_string()));
     }
 }
