@@ -7,10 +7,11 @@ use yew_router::prelude::*;
 
 use crate::{
     data::use_info::UserInfo,
+    errors::{AppError, AppResult},
     pages::{home::Home, receipts::Receipts, search::Search},
 };
 
-#[derive(Clone, Routable, PartialEq)]
+#[derive(Clone, Routable, PartialEq, Debug)]
 pub enum Route {
     #[at("/shoken-webapp-wasm/")]
     Home,
@@ -35,6 +36,8 @@ pub fn switch(routes: Route) -> Html {
 #[function_component]
 pub fn App() -> Html {
     let user_info = use_state(initialize_user_info);
+
+    #[cfg(debug_assertions)]
     console::log!(format!("user_info: {:?}", user_info));
 
     use_effect(update_browser_history);
@@ -57,24 +60,25 @@ fn initialize_user_info() -> UserInfo {
 }
 
 fn get_user_info_from_url(window: &Window) -> Option<UserInfo> {
-    window.location().search().ok().and_then(|search| {
-        Url::parse(&format!(
-            "http://localhost:8080/shoken-webapp-wasm/{}",
-            &search
-        ))
-        .ok()
-        .and_then(|url| {
-            url.query_pairs()
-                .find(|(key, _)| key == "code")
-                .map(|(_, auth_code)| {
-                    let new_info = UserInfo {
-                        auth_code: Some(auth_code.to_string()),
-                        ..Default::default()
-                    };
-                    save_user_info_to_storage(&new_info);
-                    new_info
-                })
-        })
+    let search = window.location().search().ok()?;
+
+    if search.is_empty() {
+        return None;
+    }
+
+    let base_url = format!("http://localhost:8080/shoken-webapp-wasm/{}", &search);
+
+    Url::parse(&base_url).ok().and_then(|url| {
+        url.query_pairs()
+            .find(|(key, _)| key == "code")
+            .map(|(_, auth_code)| {
+                let new_info = UserInfo {
+                    auth_code: Some(auth_code.to_string()),
+                    ..Default::default()
+                };
+                let _ = save_user_info_to_storage(&new_info);
+                new_info
+            })
     })
 }
 
@@ -87,12 +91,25 @@ fn get_user_info_from_storage(window: &Window) -> Option<UserInfo> {
         .and_then(|data| serde_json::from_str(&data).ok())
 }
 
-fn save_user_info_to_storage(user_info: &UserInfo) {
-    if let Ok(json) = serde_json::to_string(user_info) {
-        if let Some(storage) = window().and_then(|w| w.local_storage().ok()).flatten() {
-            _ = storage.set_item("user_info", &json);
-        }
-    }
+fn save_user_info_to_storage(user_info: &UserInfo) -> AppResult<()> {
+    let json = serde_json::to_string(user_info).map_err(|e| {
+        AppError::ParseError(format!("ユーザー情報のシリアライズに失敗しました: {}", e))
+    })?;
+
+    let window = window().ok_or_else(|| {
+        AppError::UnknownError("ウィンドウオブジェクトが見つかりません".to_string())
+    })?;
+
+    let storage = window
+        .local_storage()
+        .map_err(|_| AppError::UnknownError("ローカルストレージにアクセスできません".to_string()))?
+        .ok_or_else(|| AppError::UnknownError("ローカルストレージが利用できません".to_string()))?;
+
+    storage
+        .set_item("user_info", &json)
+        .map_err(|_| AppError::UnknownError("ユーザー情報の保存に失敗しました".to_string()))?;
+
+    Ok(())
 }
 
 fn update_browser_history() {
@@ -109,4 +126,20 @@ fn update_browser_history() {
             }
         })
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_routes() {
+        let home_route = Route::Home;
+        let receipts_route = Route::Receipts;
+        let search_route = Route::Search;
+
+        assert_ne!(home_route, receipts_route);
+        assert_ne!(home_route, search_route);
+        assert_ne!(receipts_route, search_route);
+    }
 }
